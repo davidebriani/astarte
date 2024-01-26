@@ -1,0 +1,13 @@
+{
+    "interface_name": "test.propertiesIndividual.Parametric",
+    "version_major": 0,
+    "version_minor": 1,
+    "type": "properties",
+    "ownership": "device",
+    "mappings": [
+        {
+            "endpoint": "/%{param}",
+            "type": "double"
+        }
+    ]
+}

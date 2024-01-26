@@ -1,0 +1,66 @@
+{
+    "interface_name": "test.datastreamObject.Simple",
+    "version_major": 0,
+    "version_minor": 1,
+    "type": "datastream",
+    "ownership": "device",
+    "aggregation": "object",
+    "mappings": [
+        {
+            "endpoint": "/object/binaryblob",
+            "type": "binaryblob"
+        },
+        {
+            "endpoint": "/object/binaryblobarray",
+            "type": "binaryblobarray"
+        },
+        {
+            "endpoint": "/object/boolean",
+            "type": "boolean"
+        },
+        {
+            "endpoint": "/object/booleanarray",
+            "type": "booleanarray"
+        },
+        {
+            "endpoint": "/object/datetime",
+            "type": "datetime"
+        },
+        {
+            "endpoint": "/object/datetimearray",
+            "type": "datetimearray"
+        },
+        {
+            "endpoint": "/object/double",
+            "type": "double"
+        },
+        {
+            "endpoint": "/object/doublearray",
+            "type": "doublearray"
+        },
+        {
+            "endpoint": "/object/integer",
+            "type": "integer"
+        },
+        {
+            "endpoint": "/object/integerarray",
+            "type": "integerarray"
+        },
+        {
+            "endpoint": "/object/longinteger",
+            "type": "longinteger"
+        },
+        {
+            "endpoint": "/object/longintegerarray",
+            "type": "longintegerarray"
+        },
+        {
+            "endpoint": "/object/string",
+            "type": "string"
+        },
+        {
+            "endpoint": "/object/stringarray",
+            "type": "stringarray"
+        }
+    ]
+}

@@ -1,0 +1,66 @@
+{
+    "interface_name": "test.datastreamObject.Parametric",
+    "version_major": 0,
+    "version_minor": 1,
+    "type": "datastream",
+    "ownership": "device",
+    "aggregation": "object",
+    "mappings": [
+        {
+            "endpoint": "/%{param}/binaryblob",
+            "type": "binaryblob"
+        },
+        {
+            "endpoint": "/%{param}/binaryblobarray",
+            "type": "binaryblobarray"
+        },
+        {
+            "endpoint": "/%{param}/boolean",
+            "type": "boolean"
+        },
+        {
+            "endpoint": "/%{param}/booleanarray",
+            "type": "booleanarray"
+        },
+        {
+            "endpoint": "/%{param}/datetime",
+            "type": "datetime"
+        },
+        {
+            "endpoint": "/%{param}/datetimearray",
+            "type": "datetimearray"
+        },
+        {
+            "endpoint": "/%{param}/double",
+            "type": "double"
+        },
+        {
+            "endpoint": "/%{param}/doublearray",
+            "type": "doublearray"
+        },
+        {
+            "endpoint": "/%{param}/integer",
+            "type": "integer"
+        },
+        {
+            "endpoint": "/%{param}/integerarray",
+            "type": "integerarray"
+        },
+        {
+            "endpoint": "/%{param}/longinteger",
+            "type": "longinteger"
+        },
+        {
+            "endpoint": "/%{param}/longintegerarray",
+            "type": "longintegerarray"
+        },
+        {
+            "endpoint": "/%{param}/string",
+            "type": "string"
+        },
+        {
+            "endpoint": "/%{param}/stringarray",
+            "type": "stringarray"
+        }
+    ]
+}

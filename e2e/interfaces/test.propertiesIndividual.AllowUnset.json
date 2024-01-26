@@ -1,0 +1,79 @@
+{
+    "interface_name": "test.propertiesIndividual.AllowUnset",
+    "version_major": 0,
+    "version_minor": 1,
+    "type": "properties",
+    "ownership": "device",
+    "mappings": [
+        {
+            "endpoint": "/binaryblob",
+            "type": "binaryblob",
+            "allow_unset": true
+        },
+        {
+            "endpoint": "/binaryblobarray",
+            "type": "binaryblobarray",
+            "allow_unset": true
+        },
+        {
+            "endpoint": "/boolean",
+            "type": "boolean",
+            "allow_unset": true
+        },
+        {
+            "endpoint": "/booleanarray",
+            "type": "booleanarray",
+            "allow_unset": true
+        },
+        {
+            "endpoint": "/datetime",
+            "type": "datetime",
+            "allow_unset": true
+        },
+        {
+            "endpoint": "/datetimearray",
+            "type": "datetimearray",
+            "allow_unset": true
+        },
+        {
+            "endpoint": "/double",
+            "type": "double",
+            "allow_unset": true
+        },
+        {
+            "endpoint": "/doublearray",
+            "type": "doublearray",
+            "allow_unset": true
+        },
+        {
+            "endpoint": "/integer",
+            "type": "integer",
+            "allow_unset": true
+        },
+        {
+            "endpoint": "/integerarray",
+            "type": "integerarray",
+            "allow_unset": true
+        },
+        {
+            "endpoint": "/longinteger",
+            "type": "longinteger",
+            "allow_unset": true
+        },
+        {
+            "endpoint": "/longintegerarray",
+            "type": "longintegerarray",
+            "allow_unset": true
+        },
+        {
+            "endpoint": "/string",
+            "type": "string",
+            "allow_unset": true
+        },
+        {
+            "endpoint": "/stringarray",
+            "type": "stringarray",
+            "allow_unset": true
+        }
+    ]
+}

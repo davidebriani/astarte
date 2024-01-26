@@ -1,0 +1,65 @@
+{
+    "interface_name": "test.datastreamIndividual.ServerOwned",
+    "version_major": 0,
+    "version_minor": 1,
+    "type": "datastream",
+    "ownership": "server",
+    "mappings": [
+        {
+            "endpoint": "/binaryblob",
+            "type": "binaryblob"
+        },
+        {
+            "endpoint": "/binaryblobarray",
+            "type": "binaryblobarray"
+        },
+        {
+            "endpoint": "/boolean",
+            "type": "boolean"
+        },
+        {
+            "endpoint": "/booleanarray",
+            "type": "booleanarray"
+        },
+        {
+            "endpoint": "/datetime",
+            "type": "datetime"
+        },
+        {
+            "endpoint": "/datetimearray",
+            "type": "datetimearray"
+        },
+        {
+            "endpoint": "/double",
+            "type": "double"
+        },
+        {
+            "endpoint": "/doublearray",
+            "type": "doublearray"
+        },
+        {
+            "endpoint": "/integer",
+            "type": "integer"
+        },
+        {
+            "endpoint": "/integerarray",
+            "type": "integerarray"
+        },
+        {
+            "endpoint": "/longinteger",
+            "type": "longinteger"
+        },
+        {
+            "endpoint": "/longintegerarray",
+            "type": "longintegerarray"
+        },
+        {
+            "endpoint": "/string",
+            "type": "string"
+        },
+        {
+            "endpoint": "/stringarray",
+            "type": "stringarray"
+        }
+    ]
+}
