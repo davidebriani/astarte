@@ -226,963 +226,963 @@ defmodule AssertionTest do
     [device_pid: device_pid]
   end
 
-  # describe "test.datastreamIndividual.ExplicitTimestamp" do
-  #   @interface "test.datastreamIndividual.ExplicitTimestamp"
-
-  #   test "returns all latest values when querying the root path", %{device_pid: device_pid} do
-  #     Enum.each(@sample_values, fn {type, value} ->
-  #       :ok = AstarteDevice.send_datastream(device_pid, @interface, "/#{type}", value)
-  #     end)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
-
-  #     assert %{
-  #              "data" => %{
-  #                "binaryblob" => %{
-  #                  "value" => "WW1sdVlYSjVZbXh2WWc9PQ=="
-  #                },
-  #                "binaryblobarray" => %{
-  #                  "value" => ["WW1sdVlYSjVZbXh2WW1GeWNtRjVNUT09", "WW1sdVlYSjVZbXh2WW1GeWNtRjVNZz09"]
-  #                },
-  #                "boolean" => %{
-  #                  "value" => true
-  #                },
-  #                "booleanarray" => %{
-  #                  "value" => [true, false]
-  #                },
-  #                "datetime" => %{
-  #                  "value" => "1970-01-01T00:00:00.000Z"
-  #                },
-  #                "datetimearray" => %{
-  #                  "value" => ["1970-01-01T00:00:00.000Z", "1970-01-01T11:11:11.111Z"]
-  #                },
-  #                "double" => %{
-  #                  "value" => 1.1
-  #                },
-  #                "doublearray" => %{
-  #                  "value" => [1.1, 2.2]
-  #                },
-  #                "integer" => %{
-  #                  "value" => 1
-  #                },
-  #                "integerarray" => %{
-  #                  "value" => [1, 2]
-  #                },
-  #                "string" => %{
-  #                  "value" => "string"
-  #                },
-  #                "stringarray" => %{
-  #                  "value" => ["string1", "string2"]
-  #                }
-  #              }
-  #            } = result
-  #   end
-
-  #   test "returns string timestamp and reception_timestamp when querying the root path", %{
-  #     device_pid: device_pid
-  #   } do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
-
-  #     assert %{
-  #              "data" => %{
-  #                "double" => %{
-  #                  "reception_timestamp" => timestamp,
-  #                  "timestamp" => timestamp,
-  #                  "value" => 1.1
-  #                }
-  #              }
-  #            } = result
-
-  #     assert String.valid?(timestamp)
-  #   end
-
-  #   test "returns numeric timestamp and reception_timestamp when querying the root path with keep_milliseconds", %{
-  #     device_pid: device_pid
-  #   } do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, query: [keep_milliseconds: true])
-
-  #     assert %{
-  #              "data" => %{
-  #                "double" => %{
-  #                  "reception_timestamp" => timestamp,
-  #                  "timestamp" => timestamp,
-  #                  "value" => 1.1
-  #                }
-  #              }
-  #            } = result
-
-  #     assert is_integer(timestamp)
-  #   end
-
-  #   test "returns the specified timestamp when querying the root path", %{device_pid: device_pid} do
-  #     datetime = DateTime.utc_now() |> DateTime.truncate(:millisecond)
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1, timestamp: datetime)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
-
-  #     assert %{
-  #       "data" => %{
-  #         "double" => %{
-  #           "reception_timestamp" => _reception_timestamp,
-  #           "timestamp" => timestamp,
-  #           "value" => 1.1
-  #         }
-  #       }
-  #     } = result
-
-  #     assert {:ok, ^datetime, _} = DateTime.from_iso8601(timestamp)
-  #   end
-
-  #   test "does not return the reception_timestamp when querying a specific path", %{
-  #     device_pid: device_pid
-  #   } do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/double")
-
-  #     %{"data" => [value | _]} = result
-
-  #     assert Map.has_key?(value, "timestamp")
-  #     refute Map.has_key?(value, "reception_timestamp")
-  #   end
-
-  #   test "returns numeric timestamp when querying a specific path with keep_milliseconds", %{
-  #     device_pid: device_pid
-  #   } do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/double", query: [keep_milliseconds: true])
-
-  #     %{"data" => [value | _]} = result
-
-  #     assert Map.has_key?(value, "timestamp")
-  #     assert is_integer(value["timestamp"])
-  #   end
-
-  #   test "returns the specified timestamp when querying a specific path", %{device_pid: device_pid} do
-  #     datetime = DateTime.utc_now() |> DateTime.truncate(:millisecond)
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1, timestamp: datetime)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/double")
-
-  #     %{
-  #       "timestamp" => timestamp,
-  #       "value" => 1.1
-  #     } = List.last(result["data"])
-
-  #     assert {:ok, ^datetime, _} = DateTime.from_iso8601(timestamp)
-  #   end
-
-  #   test "returns the history of values when querying a specific path", %{device_pid: device_pid} do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 2.2)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/double")
-
-  #     %{"data" => values} = result
-
-  #     assert [
-  #              %{
-  #                "timestamp" => timestamp1,
-  #                "value" => 2.2
-  #              },
-  #              %{
-  #                "timestamp" => timestamp2,
-  #                "value" => 1.1
-  #              }
-  #              | _
-  #            ] = Enum.reverse(values)
-
-  #     assert String.valid?(timestamp1)
-  #     assert String.valid?(timestamp2)
-  #   end
-  # end
-
-  # describe "test.datastreamIndividual.Parametric" do
-  #   @interface "test.datastreamIndividual.Parametric"
-
-  #   test "returns all latest values when querying the root path", %{device_pid: device_pid} do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/param1", 1.1)
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/param2", 2.2)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
-
-  #     assert %{
-  #              "data" => %{
-  #                "param1" => %{
-  #                  "value" => 1.1
-  #                },
-  #                "param2" => %{
-  #                  "value" => 2.2
-  #                }
-  #              }
-  #            } = result
-  #   end
-
-  #   test "returns string timestamp and reception_timestamp when querying the root path", %{
-  #     device_pid: device_pid
-  #   } do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/param1", 1.1)
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/param2", 2.2)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
-
-  #     assert %{
-  #              "data" => %{
-  #                "param1" => %{
-  #                  "reception_timestamp" => timestamp1,
-  #                  "timestamp" => timestamp1,
-  #                  "value" => 1.1
-  #                },
-  #                "param2" => %{
-  #                  "reception_timestamp" => timestamp2,
-  #                  "timestamp" => timestamp2,
-  #                  "value" => 2.2
-  #                }
-  #              }
-  #            } = result
-
-  #     assert String.valid?(timestamp1)
-  #     assert String.valid?(timestamp2)
-  #   end
-
-  #   test "returns numeric timestamp and reception_timestamp when querying the root path with keep_milliseconds", %{
-  #     device_pid: device_pid
-  #   } do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, query: [keep_milliseconds: true])
-
-  #     assert %{
-  #              "data" => %{
-  #                "double" => %{
-  #                  "reception_timestamp" => timestamp,
-  #                  "timestamp" => timestamp,
-  #                  "value" => 1.1
-  #                }
-  #              }
-  #            } = result
-
-  #     assert is_integer(timestamp)
-  #   end
-
-  #   test "does not return the reception_timestamp when querying a specific path", %{
-  #     device_pid: device_pid
-  #   } do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/double")
-
-  #     %{"data" => [value | _]} = result
-
-  #     assert Map.has_key?(value, "timestamp")
-  #     refute Map.has_key?(value, "reception_timestamp")
-  #   end
-
-  #   test "returns numeric timestamp when querying a specific path with keep_milliseconds", %{
-  #     device_pid: device_pid
-  #   } do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/double", query: [keep_milliseconds: true])
-
-  #     %{"data" => [value | _]} = result
-
-  #     assert Map.has_key?(value, "timestamp")
-  #     assert is_integer(value["timestamp"])
-  #   end
-
-  #   test "returns the history of values when querying a specific path", %{device_pid: device_pid} do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 2.2)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/double")
-
-  #     %{"data" => values} = result
-
-  #     assert [
-  #              %{
-  #                "timestamp" => timestamp1,
-  #                "value" => 2.2
-  #              },
-  #              %{
-  #                "timestamp" => timestamp2,
-  #                "value" => 1.1
-  #              }
-  #              | _
-  #            ] = Enum.reverse(values)
-
-  #     assert String.valid?(timestamp1)
-  #     assert String.valid?(timestamp2)
-  #   end
-  # end
-
-  # describe "test.datastreamIndividual.ServerOwned" do
-  #   @interface "test.datastreamIndividual.ServerOwned"
-
-  #   test "returns all latest values when querying the root path" do
-  #     Enum.each(@sample_values, fn {type, value} ->
-  #       :ok = AstarteAPI.send_datastream(@device_id, @interface, "/#{type}", value)
-  #     end)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
-
-  #     assert %{
-  #       "data" => %{
-  #         "binaryblob" => %{
-  #           "value" => "YmluYXJ5YmxvYg=="
-  #         },
-  #         "binaryblobarray" => %{
-  #           "value" => ["YmluYXJ5YmxvYmFycmF5MQ==", "YmluYXJ5YmxvYmFycmF5Mg=="]
-  #         },
-  #         "boolean" => %{
-  #           "value" => true
-  #         },
-  #         "booleanarray" => %{
-  #           "value" => [true, false]
-  #         },
-  #         "datetime" => %{
-  #           "value" => "1970-01-01T00:00:00.000Z"
-  #         },
-  #         "datetimearray" => %{
-  #           "value" => ["1970-01-01T00:00:00.000Z", "1970-01-01T11:11:11.111Z"]
-  #         },
-  #         "double" => %{
-  #           "value" => 1.1
-  #         },
-  #         "doublearray" => %{
-  #           "value" => [1.1, 2.2]
-  #         },
-  #         "integer" => %{
-  #           "value" => 1
-  #         },
-  #         "integerarray" => %{
-  #           "value" => [1, 2]
-  #         },
-  #         "string" => %{
-  #           "value" => "string"
-  #         },
-  #         "stringarray" => %{
-  #           "value" => ["string1", "string2"]
-  #         }
-  #       }
-  #     } = result
-  #   end
-
-  #   test "returns string timestamp and reception_timestamp when querying the root path" do
-  #     :ok = AstarteAPI.send_datastream(@device_id, @interface, "/double", 1.1)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
-
-  #     assert %{
-  #              "data" => %{
-  #                "double" => %{
-  #                  "reception_timestamp" => timestamp1,
-  #                  "timestamp" => timestamp1,
-  #                  "value" => 1.1
-  #                },
-  #              }
-  #            } = result
-
-  #     assert String.valid?(timestamp1)
-  #   end
-
-  #   test "returns numeric timestamp and reception_timestamp when querying the root path with keep_milliseconds" do
-  #     :ok = AstarteAPI.send_datastream(@device_id, @interface, "/double", 1.1)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, query: [keep_milliseconds: true])
-
-  #     assert %{
-  #              "data" => %{
-  #                "double" => %{
-  #                  "reception_timestamp" => timestamp,
-  #                  "timestamp" => timestamp,
-  #                  "value" => 1.1
-  #                }
-  #              }
-  #            } = result
-
-  #     assert is_integer(timestamp)
-  #   end
-
-  #   test "does not return the reception_timestamp when querying a specific path" do
-  #     :ok = AstarteAPI.send_datastream(@device_id, @interface, "/double", 1.1)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/double")
-
-  #     %{"data" => [value | _]} = result
-
-  #     assert Map.has_key?(value, "timestamp")
-  #     refute Map.has_key?(value, "reception_timestamp")
-  #   end
-
-  #   test "returns numeric timestamp when querying a specific path with keep_milliseconds" do
-  #     :ok = AstarteAPI.send_datastream(@device_id, @interface, "/double", 1.1)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/double", query: [keep_milliseconds: true])
-
-  #     %{"data" => [value | _]} = result
-
-  #     assert Map.has_key?(value, "timestamp")
-  #     assert is_integer(value["timestamp"])
-  #   end
-
-  #   test "returns the history of values when querying a specific path" do
-  #     :ok = AstarteAPI.send_datastream(@device_id, @interface, "/double", 1.1)
-  #     :ok = AstarteAPI.send_datastream(@device_id, @interface, "/double", 2.2)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/double")
-
-  #     %{"data" => values} = result
-
-  #     assert [
-  #              %{
-  #                "timestamp" => timestamp1,
-  #                "value" => 2.2
-  #              },
-  #              %{
-  #                "timestamp" => timestamp2,
-  #                "value" => 1.1
-  #              }
-  #              | _
-  #            ] = Enum.reverse(values)
-
-  #     assert String.valid?(timestamp1)
-  #     assert String.valid?(timestamp2)
-  #   end
-  # end
-
-  # describe "test.datastreamIndividual.Simple" do
-  #   @interface "test.datastreamIndividual.Simple"
-
-  #   test "returns all latest values when querying the root path", %{device_pid: device_pid} do
-  #     Enum.each(@sample_values, fn {type, value} ->
-  #       :ok = AstarteDevice.send_datastream(device_pid, @interface, "/#{type}", value)
-  #     end)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
-
-  #     assert %{
-  #       "data" => %{
-  #         "binaryblob" => %{
-  #           "value" => "WW1sdVlYSjVZbXh2WWc9PQ=="
-  #         },
-  #         "binaryblobarray" => %{
-  #           "value" => ["WW1sdVlYSjVZbXh2WW1GeWNtRjVNUT09", "WW1sdVlYSjVZbXh2WW1GeWNtRjVNZz09"]
-  #         },
-  #         "boolean" => %{
-  #           "value" => true
-  #         },
-  #         "booleanarray" => %{
-  #           "value" => [true, false]
-  #         },
-  #         "datetime" => %{
-  #           "value" => "1970-01-01T00:00:00.000Z"
-  #         },
-  #         "datetimearray" => %{
-  #           "value" => ["1970-01-01T00:00:00.000Z", "1970-01-01T11:11:11.111Z"]
-  #         },
-  #         "double" => %{
-  #           "value" => 1.1
-  #         },
-  #         "doublearray" => %{
-  #           "value" => [1.1, 2.2]
-  #         },
-  #         "integer" => %{
-  #           "value" => 1
-  #         },
-  #         "integerarray" => %{
-  #           "value" => [1, 2]
-  #         },
-  #         "string" => %{
-  #           "value" => "string"
-  #         },
-  #         "stringarray" => %{
-  #           "value" => ["string1", "string2"]
-  #         }
-  #       }
-  #     } = result
-  #   end
-
-  #   test "returns string timestamp and reception_timestamp when querying the root path", %{
-  #     device_pid: device_pid
-  #   } do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/integer", 1)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
-
-  #     assert %{
-  #              "data" => %{
-  #                "double" => %{
-  #                  "reception_timestamp" => timestamp1,
-  #                  "timestamp" => timestamp1,
-  #                  "value" => 1.1
-  #                },
-  #                "integer" => %{
-  #                  "reception_timestamp" => timestamp2,
-  #                  "timestamp" => timestamp2,
-  #                  "value" => 1
-  #                }
-  #              }
-  #            } = result
-
-  #     assert String.valid?(timestamp1)
-  #     assert String.valid?(timestamp2)
-  #   end
-
-  #   test "returns numeric timestamp and reception_timestamp when querying the root path with keep_milliseconds", %{
-  #     device_pid: device_pid
-  #   } do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, query: [keep_milliseconds: true])
-
-  #     assert %{
-  #              "data" => %{
-  #                "double" => %{
-  #                  "reception_timestamp" => timestamp,
-  #                  "timestamp" => timestamp,
-  #                  "value" => 1.1
-  #                }
-  #              }
-  #            } = result
-
-  #     assert is_integer(timestamp)
-  #   end
-
-  #   test "does not return the reception_timestamp when querying a specific path", %{
-  #     device_pid: device_pid
-  #   } do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/double")
-
-  #     %{"data" => [value | _]} = result
-
-  #     assert Map.has_key?(value, "timestamp")
-  #     refute Map.has_key?(value, "reception_timestamp")
-  #   end
-
-  #   test "returns numeric timestamp when querying a specific path with keep_milliseconds", %{
-  #     device_pid: device_pid
-  #   } do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/double", query: [keep_milliseconds: true])
-
-  #     %{"data" => [value | _]} = result
-
-  #     assert Map.has_key?(value, "timestamp")
-  #     assert is_integer(value["timestamp"])
-  #   end
-
-  #   test "returns the history of values when querying a specific path", %{device_pid: device_pid} do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 2.2)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/double")
-
-  #     %{"data" => values} = result
-
-  #     assert [
-  #              %{
-  #                "timestamp" => timestamp1,
-  #                "value" => 2.2
-  #              },
-  #              %{
-  #                "timestamp" => timestamp2,
-  #                "value" => 1.1
-  #              }
-  #              | _
-  #            ] = Enum.reverse(values)
-
-  #     assert String.valid?(timestamp1)
-  #     assert String.valid?(timestamp2)
-  #   end
-  # end
-
-  # describe "test.datastreamObject.ExplicitTimestamp" do
-  #   @interface "test.datastreamObject.ExplicitTimestamp"
-
-  #   test "returns all latest values when querying the root path", %{device_pid: device_pid} do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
-
-  #     assert %{
-  #              "data" => %{
-  #               "object" => values
-  #              }
-  #            } = result
-
-  #     assert %{
-  #       "binaryblob" => "WW1sdVlYSjVZbXh2WWc9PQ==",
-  #       "binaryblobarray" => ["WW1sdVlYSjVZbXh2WW1GeWNtRjVNUT09", "WW1sdVlYSjVZbXh2WW1GeWNtRjVNZz09"],
-  #       "boolean" => true,
-  #       "booleanarray" => [true, false],
-  #       "datetime" => "1970-01-01T00:00:00.000Z",
-  #       "datetimearray" => ["1970-01-01T00:00:00.000Z", "1970-01-01T11:11:11.111Z"],
-  #       "double" => 1.1,
-  #       "doublearray" => [1.1, 2.2],
-  #       "integer" => 1,
-  #       "integerarray" => [1, 2],
-  #       "string" => "string",
-  #       "stringarray" => ["string1", "string2"]
-  #      } = List.last(values)
-  #   end
-
-  #   test "returns string timestamp when querying the root path", %{
-  #     device_pid: device_pid
-  #   } do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
-
-  #     assert %{
-  #              "data" => %{
-  #               "object" => values
-  #              }
-  #            } = result
-  #     assert %{"timestamp" => timestamp} = List.last(values)
-  #     assert String.valid?(timestamp)
-  #   end
-
-  #   test "returns numeric timestamp when querying the root path with keep_milliseconds", %{
-  #     device_pid: device_pid
-  #   } do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, query: [keep_milliseconds: true])
-
-  #     assert %{
-  #       "data" => %{
-  #        "object" => values
-  #       }
-  #     } = result
-  #     assert %{"timestamp" => timestamp} = List.last(values)
-
-  #     assert is_integer(timestamp)
-  #   end
-
-  #   test "does not return a reception_timestamp when querying the root path", %{
-  #     device_pid: device_pid
-  #   } do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
-
-  #     assert %{
-  #              "data" => %{
-  #               "object" => values
-  #              }
-  #            } = result
-
-  #     value = List.last(values)
-
-  #     refute Map.has_key?(value, "reception_timestamp")
-  #   end
-
-  #   test "returns the specified timestamp when querying the root path", %{device_pid: device_pid} do
-  #     datetime = DateTime.utc_now() |> DateTime.truncate(:millisecond)
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values, timestamp: datetime)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
-
-  #     %{
-  #       "data" => %{
-  #        "object" => values
-  #       }
-  #     } = result
-
-  #     %{"timestamp" => timestamp} = List.last(values)
-
-  #     assert {:ok, ^datetime, _} = DateTime.from_iso8601(timestamp)
-  #   end
-
-  #   test "does not return the reception_timestamp when querying a specific object", %{
-  #     device_pid: device_pid
-  #   } do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/object")
-
-  #     %{"data" => [value | _]} = result
-
-  #     assert Map.has_key?(value, "timestamp")
-  #     refute Map.has_key?(value, "reception_timestamp")
-  #   end
-
-  #   test "returns numeric timestamp when querying a specific path with keep_milliseconds", %{
-  #     device_pid: device_pid
-  #   } do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/object", query: [keep_milliseconds: true])
-
-  #     %{"data" => [value | _]} = result
-
-  #     assert Map.has_key?(value, "timestamp")
-  #     assert is_integer(value["timestamp"])
-  #   end
-
-  #   test "returns the specified timestamp when querying a specific object", %{device_pid: device_pid} do
-  #     datetime = DateTime.utc_now() |> DateTime.truncate(:millisecond)
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values, timestamp: datetime)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/object")
-
-  #     %{
-  #       "timestamp" => timestamp,
-  #     } = List.last(result["data"])
-
-  #     assert {:ok, ^datetime, _} = DateTime.from_iso8601(timestamp)
-  #   end
-
-  #   test "returns the history of values when querying a specific object", %{device_pid: device_pid} do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", %{"double" => 1.1})
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", %{"double" => 2.2})
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/object")
-
-  #     %{"data" => values} = result
-
-  #     assert [%{"double" => 2.2}, %{"double" => 1.1} | _] = Enum.reverse(values)
-  #   end
-  # end
-
-  # describe "test.datastreamObject.Parametric" do
-  #   @interface "test.datastreamObject.Parametric"
-
-  #   test "returns all latest values when querying the root path", %{device_pid: device_pid} do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
-
-  #     assert %{
-  #              "data" => %{
-  #               "object" => values
-  #              }
-  #            } = result
-
-  #     assert %{
-  #       "binaryblob" => "WW1sdVlYSjVZbXh2WWc9PQ==",
-  #       "binaryblobarray" => ["WW1sdVlYSjVZbXh2WW1GeWNtRjVNUT09", "WW1sdVlYSjVZbXh2WW1GeWNtRjVNZz09"],
-  #       "boolean" => true,
-  #       "booleanarray" => [true, false],
-  #       "datetime" => "1970-01-01T00:00:00.000Z",
-  #       "datetimearray" => ["1970-01-01T00:00:00.000Z", "1970-01-01T11:11:11.111Z"],
-  #       "double" => 1.1,
-  #       "doublearray" => [1.1, 2.2],
-  #       "integer" => 1,
-  #       "integerarray" => [1, 2],
-  #       "string" => "string",
-  #       "stringarray" => ["string1", "string2"]
-  #      } = List.last(values)
-  #   end
-
-  #   test "returns string timestamp when querying the root path", %{
-  #     device_pid: device_pid
-  #   } do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
-
-  #     assert %{
-  #              "data" => %{
-  #               "object" => values
-  #              }
-  #            } = result
-  #     assert %{"timestamp" => timestamp} = List.last(values)
-  #     assert String.valid?(timestamp)
-  #   end
-
-  #   test "returns numeric timestamp when querying the root path with keep_milliseconds", %{
-  #     device_pid: device_pid
-  #   } do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, query: [keep_milliseconds: true])
-
-  #     assert %{
-  #       "data" => %{
-  #        "object" => values
-  #       }
-  #     } = result
-  #     assert %{"timestamp" => timestamp} = List.last(values)
-
-  #     assert is_integer(timestamp)
-  #   end
-
-  #   test "does not return a reception_timestamp when querying the root path", %{
-  #     device_pid: device_pid
-  #   } do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
-
-  #     assert %{
-  #              "data" => %{
-  #               "object" => values
-  #              }
-  #            } = result
-
-  #     value = List.last(values)
-
-  #     refute Map.has_key?(value, "reception_timestamp")
-  #   end
-
-  #   test "does not return the reception_timestamp when querying a specific object", %{
-  #     device_pid: device_pid
-  #   } do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/object")
-
-  #     %{"data" => [value | _]} = result
-
-  #     assert Map.has_key?(value, "timestamp")
-  #     refute Map.has_key?(value, "reception_timestamp")
-  #   end
-
-  #   test "returns numeric timestamp when querying a specific path with keep_milliseconds", %{
-  #     device_pid: device_pid
-  #   } do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/object", query: [keep_milliseconds: true])
-
-  #     %{"data" => [value | _]} = result
-
-  #     assert Map.has_key?(value, "timestamp")
-  #     assert is_integer(value["timestamp"])
-  #   end
-
-  #   test "returns the history of values when querying a specific object", %{device_pid: device_pid} do
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", %{"double" => 1.1})
-  #     :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", %{"double" => 2.2})
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/object")
-
-  #     %{"data" => values} = result
-
-  #     assert [%{"double" => 2.2}, %{"double" => 1.1} | _] = Enum.reverse(values)
-  #   end
-  # end
-
-  # describe "test.datastreamObject.ServerOwned" do
-  #   @interface "test.datastreamObject.ServerOwned"
-
-  #   test "returns all latest values when querying the root path" do
-  #     :ok = AstarteAPI.send_datastream(@device_id, @interface, "/object", @sample_values)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
-
-  #     assert %{
-  #              "data" => %{
-  #               "object" => values
-  #              }
-  #            } = result
-
-  #     assert %{
-  #       "binaryblob" => "YmluYXJ5YmxvYg==",
-  #       "binaryblobarray" => ["YmluYXJ5YmxvYmFycmF5MQ==", "YmluYXJ5YmxvYmFycmF5Mg=="],
-  #       "boolean" => true,
-  #       "booleanarray" => [true, false],
-  #       "datetime" => "1970-01-01T00:00:00.000Z",
-  #       "datetimearray" => ["1970-01-01T00:00:00.000Z", "1970-01-01T11:11:11.111Z"],
-  #       "double" => 1.1,
-  #       "doublearray" => [1.1, 2.2],
-  #       "integer" => 1,
-  #       "integerarray" => [1, 2],
-  #       "string" => "string",
-  #       "stringarray" => ["string1", "string2"]
-  #      } = List.last(values)
-  #   end
-
-  #   test "returns string timestamp when querying the root path" do
-  #     :ok = AstarteAPI.send_datastream(@device_id, @interface, "/object", @sample_values)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
-
-  #     assert %{
-  #              "data" => %{
-  #               "object" => values
-  #              }
-  #            } = result
-  #     assert %{"timestamp" => timestamp} = List.last(values)
-  #     assert String.valid?(timestamp)
-  #   end
-
-  #   test "returns numeric timestamp when querying the root path with keep_milliseconds" do
-  #     :ok = AstarteAPI.send_datastream(@device_id, @interface, "/object", @sample_values)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, query: [keep_milliseconds: true])
-
-  #     assert %{
-  #       "data" => %{
-  #        "object" => values
-  #       }
-  #     } = result
-  #     assert %{"timestamp" => timestamp} = List.last(values)
-  #     assert is_integer(timestamp)
-  #   end
-
-  #   test "does not return a reception_timestamp when querying the root path" do
-  #     :ok = AstarteAPI.send_datastream(@device_id, @interface, "/object", @sample_values)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
-
-  #     assert %{
-  #              "data" => %{
-  #               "object" => values
-  #              }
-  #            } = result
-
-  #     value = List.last(values)
-
-  #     refute Map.has_key?(value, "reception_timestamp")
-  #   end
-
-  #   test "does not return the reception_timestamp when querying a specific object" do
-  #     :ok = AstarteAPI.send_datastream(@device_id, @interface, "/object", @sample_values)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/object")
-
-  #     %{"data" => [value | _]} = result
-
-  #     assert Map.has_key?(value, "timestamp")
-  #     refute Map.has_key?(value, "reception_timestamp")
-  #   end
-
-  #   test "returns numeric timestamp when querying a specific path with keep_milliseconds", %{
-  #     device_pid: device_pid
-  #   } do
-  #     :ok = AstarteAPI.send_datastream(@device_id, @interface, "/object", @sample_values)
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/object", query: [keep_milliseconds: true])
-
-  #     %{"data" => [value | _]} = result
-
-  #     assert Map.has_key?(value, "timestamp")
-  #     assert is_integer(value["timestamp"])
-  #   end
-
-  #   test "returns the history of values when querying a specific object" do
-  #     :ok = AstarteAPI.send_datastream(@device_id, @interface, "/object", %{"double" => 1.1})
-  #     :ok = AstarteAPI.send_datastream(@device_id, @interface, "/object", %{"double" => 2.2})
-
-  #     {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/object")
-
-  #     %{"data" => values} = result
-
-  #     assert [%{"double" => 2.2}, %{"double" => 1.1} | _] = Enum.reverse(values)
-  #   end
-  # end
+  describe "test.datastreamIndividual.ExplicitTimestamp" do
+    @interface "test.datastreamIndividual.ExplicitTimestamp"
+
+    test "returns all latest values when querying the root path", %{device_pid: device_pid} do
+      Enum.each(@sample_values, fn {type, value} ->
+        :ok = AstarteDevice.send_datastream(device_pid, @interface, "/#{type}", value)
+      end)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
+
+      assert %{
+               "data" => %{
+                 "binaryblob" => %{
+                   "value" => "WW1sdVlYSjVZbXh2WWc9PQ=="
+                 },
+                 "binaryblobarray" => %{
+                   "value" => ["WW1sdVlYSjVZbXh2WW1GeWNtRjVNUT09", "WW1sdVlYSjVZbXh2WW1GeWNtRjVNZz09"]
+                 },
+                 "boolean" => %{
+                   "value" => true
+                 },
+                 "booleanarray" => %{
+                   "value" => [true, false]
+                 },
+                 "datetime" => %{
+                   "value" => "1970-01-01T00:00:00.000Z"
+                 },
+                 "datetimearray" => %{
+                   "value" => ["1970-01-01T00:00:00.000Z", "1970-01-01T11:11:11.111Z"]
+                 },
+                 "double" => %{
+                   "value" => 1.1
+                 },
+                 "doublearray" => %{
+                   "value" => [1.1, 2.2]
+                 },
+                 "integer" => %{
+                   "value" => 1
+                 },
+                 "integerarray" => %{
+                   "value" => [1, 2]
+                 },
+                 "string" => %{
+                   "value" => "string"
+                 },
+                 "stringarray" => %{
+                   "value" => ["string1", "string2"]
+                 }
+               }
+             } = result
+    end
+
+    test "returns string timestamp and reception_timestamp when querying the root path", %{
+      device_pid: device_pid
+    } do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
+
+      assert %{
+               "data" => %{
+                 "double" => %{
+                   "reception_timestamp" => timestamp,
+                   "timestamp" => timestamp,
+                   "value" => 1.1
+                 }
+               }
+             } = result
+
+      assert String.valid?(timestamp)
+    end
+
+    test "returns numeric timestamp and reception_timestamp when querying the root path with keep_milliseconds", %{
+      device_pid: device_pid
+    } do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, query: [keep_milliseconds: true])
+
+      assert %{
+               "data" => %{
+                 "double" => %{
+                   "reception_timestamp" => timestamp,
+                   "timestamp" => timestamp,
+                   "value" => 1.1
+                 }
+               }
+             } = result
+
+      assert is_integer(timestamp)
+    end
+
+    test "returns the specified timestamp when querying the root path", %{device_pid: device_pid} do
+      datetime = DateTime.utc_now() |> DateTime.truncate(:millisecond)
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1, timestamp: datetime)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
+
+      assert %{
+        "data" => %{
+          "double" => %{
+            "reception_timestamp" => _reception_timestamp,
+            "timestamp" => timestamp,
+            "value" => 1.1
+          }
+        }
+      } = result
+
+      assert {:ok, ^datetime, _} = DateTime.from_iso8601(timestamp)
+    end
+
+    test "does not return the reception_timestamp when querying a specific path", %{
+      device_pid: device_pid
+    } do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/double")
+
+      %{"data" => [value | _]} = result
+
+      assert Map.has_key?(value, "timestamp")
+      refute Map.has_key?(value, "reception_timestamp")
+    end
+
+    test "returns numeric timestamp when querying a specific path with keep_milliseconds", %{
+      device_pid: device_pid
+    } do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/double", query: [keep_milliseconds: true])
+
+      %{"data" => [value | _]} = result
+
+      assert Map.has_key?(value, "timestamp")
+      assert is_integer(value["timestamp"])
+    end
+
+    test "returns the specified timestamp when querying a specific path", %{device_pid: device_pid} do
+      datetime = DateTime.utc_now() |> DateTime.truncate(:millisecond)
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1, timestamp: datetime)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/double")
+
+      %{
+        "timestamp" => timestamp,
+        "value" => 1.1
+      } = List.last(result["data"])
+
+      assert {:ok, ^datetime, _} = DateTime.from_iso8601(timestamp)
+    end
+
+    test "returns the history of values when querying a specific path", %{device_pid: device_pid} do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 2.2)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/double")
+
+      %{"data" => values} = result
+
+      assert [
+               %{
+                 "timestamp" => timestamp1,
+                 "value" => 2.2
+               },
+               %{
+                 "timestamp" => timestamp2,
+                 "value" => 1.1
+               }
+               | _
+             ] = Enum.reverse(values)
+
+      assert String.valid?(timestamp1)
+      assert String.valid?(timestamp2)
+    end
+  end
+
+  describe "test.datastreamIndividual.Parametric" do
+    @interface "test.datastreamIndividual.Parametric"
+
+    test "returns all latest values when querying the root path", %{device_pid: device_pid} do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/param1", 1.1)
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/param2", 2.2)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
+
+      assert %{
+               "data" => %{
+                 "param1" => %{
+                   "value" => 1.1
+                 },
+                 "param2" => %{
+                   "value" => 2.2
+                 }
+               }
+             } = result
+    end
+
+    test "returns string timestamp and reception_timestamp when querying the root path", %{
+      device_pid: device_pid
+    } do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/param1", 1.1)
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/param2", 2.2)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
+
+      assert %{
+               "data" => %{
+                 "param1" => %{
+                   "reception_timestamp" => timestamp1,
+                   "timestamp" => timestamp1,
+                   "value" => 1.1
+                 },
+                 "param2" => %{
+                   "reception_timestamp" => timestamp2,
+                   "timestamp" => timestamp2,
+                   "value" => 2.2
+                 }
+               }
+             } = result
+
+      assert String.valid?(timestamp1)
+      assert String.valid?(timestamp2)
+    end
+
+    test "returns numeric timestamp and reception_timestamp when querying the root path with keep_milliseconds", %{
+      device_pid: device_pid
+    } do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, query: [keep_milliseconds: true])
+
+      assert %{
+               "data" => %{
+                 "double" => %{
+                   "reception_timestamp" => timestamp,
+                   "timestamp" => timestamp,
+                   "value" => 1.1
+                 }
+               }
+             } = result
+
+      assert is_integer(timestamp)
+    end
+
+    test "does not return the reception_timestamp when querying a specific path", %{
+      device_pid: device_pid
+    } do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/double")
+
+      %{"data" => [value | _]} = result
+
+      assert Map.has_key?(value, "timestamp")
+      refute Map.has_key?(value, "reception_timestamp")
+    end
+
+    test "returns numeric timestamp when querying a specific path with keep_milliseconds", %{
+      device_pid: device_pid
+    } do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/double", query: [keep_milliseconds: true])
+
+      %{"data" => [value | _]} = result
+
+      assert Map.has_key?(value, "timestamp")
+      assert is_integer(value["timestamp"])
+    end
+
+    test "returns the history of values when querying a specific path", %{device_pid: device_pid} do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 2.2)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/double")
+
+      %{"data" => values} = result
+
+      assert [
+               %{
+                 "timestamp" => timestamp1,
+                 "value" => 2.2
+               },
+               %{
+                 "timestamp" => timestamp2,
+                 "value" => 1.1
+               }
+               | _
+             ] = Enum.reverse(values)
+
+      assert String.valid?(timestamp1)
+      assert String.valid?(timestamp2)
+    end
+  end
+
+  describe "test.datastreamIndividual.ServerOwned" do
+    @interface "test.datastreamIndividual.ServerOwned"
+
+    test "returns all latest values when querying the root path" do
+      Enum.each(@sample_values, fn {type, value} ->
+        :ok = AstarteAPI.send_datastream(@device_id, @interface, "/#{type}", value)
+      end)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
+
+      assert %{
+        "data" => %{
+          "binaryblob" => %{
+            "value" => "YmluYXJ5YmxvYg=="
+          },
+          "binaryblobarray" => %{
+            "value" => ["YmluYXJ5YmxvYmFycmF5MQ==", "YmluYXJ5YmxvYmFycmF5Mg=="]
+          },
+          "boolean" => %{
+            "value" => true
+          },
+          "booleanarray" => %{
+            "value" => [true, false]
+          },
+          "datetime" => %{
+            "value" => "1970-01-01T00:00:00.000Z"
+          },
+          "datetimearray" => %{
+            "value" => ["1970-01-01T00:00:00.000Z", "1970-01-01T11:11:11.111Z"]
+          },
+          "double" => %{
+            "value" => 1.1
+          },
+          "doublearray" => %{
+            "value" => [1.1, 2.2]
+          },
+          "integer" => %{
+            "value" => 1
+          },
+          "integerarray" => %{
+            "value" => [1, 2]
+          },
+          "string" => %{
+            "value" => "string"
+          },
+          "stringarray" => %{
+            "value" => ["string1", "string2"]
+          }
+        }
+      } = result
+    end
+
+    test "returns string timestamp and reception_timestamp when querying the root path" do
+      :ok = AstarteAPI.send_datastream(@device_id, @interface, "/double", 1.1)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
+
+      assert %{
+               "data" => %{
+                 "double" => %{
+                   "reception_timestamp" => timestamp1,
+                   "timestamp" => timestamp1,
+                   "value" => 1.1
+                 },
+               }
+             } = result
+
+      assert String.valid?(timestamp1)
+    end
+
+    test "returns numeric timestamp and reception_timestamp when querying the root path with keep_milliseconds" do
+      :ok = AstarteAPI.send_datastream(@device_id, @interface, "/double", 1.1)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, query: [keep_milliseconds: true])
+
+      assert %{
+               "data" => %{
+                 "double" => %{
+                   "reception_timestamp" => timestamp,
+                   "timestamp" => timestamp,
+                   "value" => 1.1
+                 }
+               }
+             } = result
+
+      assert is_integer(timestamp)
+    end
+
+    test "does not return the reception_timestamp when querying a specific path" do
+      :ok = AstarteAPI.send_datastream(@device_id, @interface, "/double", 1.1)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/double")
+
+      %{"data" => [value | _]} = result
+
+      assert Map.has_key?(value, "timestamp")
+      refute Map.has_key?(value, "reception_timestamp")
+    end
+
+    test "returns numeric timestamp when querying a specific path with keep_milliseconds" do
+      :ok = AstarteAPI.send_datastream(@device_id, @interface, "/double", 1.1)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/double", query: [keep_milliseconds: true])
+
+      %{"data" => [value | _]} = result
+
+      assert Map.has_key?(value, "timestamp")
+      assert is_integer(value["timestamp"])
+    end
+
+    test "returns the history of values when querying a specific path" do
+      :ok = AstarteAPI.send_datastream(@device_id, @interface, "/double", 1.1)
+      :ok = AstarteAPI.send_datastream(@device_id, @interface, "/double", 2.2)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/double")
+
+      %{"data" => values} = result
+
+      assert [
+               %{
+                 "timestamp" => timestamp1,
+                 "value" => 2.2
+               },
+               %{
+                 "timestamp" => timestamp2,
+                 "value" => 1.1
+               }
+               | _
+             ] = Enum.reverse(values)
+
+      assert String.valid?(timestamp1)
+      assert String.valid?(timestamp2)
+    end
+  end
+
+  describe "test.datastreamIndividual.Simple" do
+    @interface "test.datastreamIndividual.Simple"
+
+    test "returns all latest values when querying the root path", %{device_pid: device_pid} do
+      Enum.each(@sample_values, fn {type, value} ->
+        :ok = AstarteDevice.send_datastream(device_pid, @interface, "/#{type}", value)
+      end)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
+
+      assert %{
+        "data" => %{
+          "binaryblob" => %{
+            "value" => "WW1sdVlYSjVZbXh2WWc9PQ=="
+          },
+          "binaryblobarray" => %{
+            "value" => ["WW1sdVlYSjVZbXh2WW1GeWNtRjVNUT09", "WW1sdVlYSjVZbXh2WW1GeWNtRjVNZz09"]
+          },
+          "boolean" => %{
+            "value" => true
+          },
+          "booleanarray" => %{
+            "value" => [true, false]
+          },
+          "datetime" => %{
+            "value" => "1970-01-01T00:00:00.000Z"
+          },
+          "datetimearray" => %{
+            "value" => ["1970-01-01T00:00:00.000Z", "1970-01-01T11:11:11.111Z"]
+          },
+          "double" => %{
+            "value" => 1.1
+          },
+          "doublearray" => %{
+            "value" => [1.1, 2.2]
+          },
+          "integer" => %{
+            "value" => 1
+          },
+          "integerarray" => %{
+            "value" => [1, 2]
+          },
+          "string" => %{
+            "value" => "string"
+          },
+          "stringarray" => %{
+            "value" => ["string1", "string2"]
+          }
+        }
+      } = result
+    end
+
+    test "returns string timestamp and reception_timestamp when querying the root path", %{
+      device_pid: device_pid
+    } do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/integer", 1)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
+
+      assert %{
+               "data" => %{
+                 "double" => %{
+                   "reception_timestamp" => timestamp1,
+                   "timestamp" => timestamp1,
+                   "value" => 1.1
+                 },
+                 "integer" => %{
+                   "reception_timestamp" => timestamp2,
+                   "timestamp" => timestamp2,
+                   "value" => 1
+                 }
+               }
+             } = result
+
+      assert String.valid?(timestamp1)
+      assert String.valid?(timestamp2)
+    end
+
+    test "returns numeric timestamp and reception_timestamp when querying the root path with keep_milliseconds", %{
+      device_pid: device_pid
+    } do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, query: [keep_milliseconds: true])
+
+      assert %{
+               "data" => %{
+                 "double" => %{
+                   "reception_timestamp" => timestamp,
+                   "timestamp" => timestamp,
+                   "value" => 1.1
+                 }
+               }
+             } = result
+
+      assert is_integer(timestamp)
+    end
+
+    test "does not return the reception_timestamp when querying a specific path", %{
+      device_pid: device_pid
+    } do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/double")
+
+      %{"data" => [value | _]} = result
+
+      assert Map.has_key?(value, "timestamp")
+      refute Map.has_key?(value, "reception_timestamp")
+    end
+
+    test "returns numeric timestamp when querying a specific path with keep_milliseconds", %{
+      device_pid: device_pid
+    } do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/double", query: [keep_milliseconds: true])
+
+      %{"data" => [value | _]} = result
+
+      assert Map.has_key?(value, "timestamp")
+      assert is_integer(value["timestamp"])
+    end
+
+    test "returns the history of values when querying a specific path", %{device_pid: device_pid} do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 1.1)
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/double", 2.2)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/double")
+
+      %{"data" => values} = result
+
+      assert [
+               %{
+                 "timestamp" => timestamp1,
+                 "value" => 2.2
+               },
+               %{
+                 "timestamp" => timestamp2,
+                 "value" => 1.1
+               }
+               | _
+             ] = Enum.reverse(values)
+
+      assert String.valid?(timestamp1)
+      assert String.valid?(timestamp2)
+    end
+  end
+
+  describe "test.datastreamObject.ExplicitTimestamp" do
+    @interface "test.datastreamObject.ExplicitTimestamp"
+
+    test "returns all latest values when querying the root path", %{device_pid: device_pid} do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
+
+      assert %{
+               "data" => %{
+                "object" => values
+               }
+             } = result
+
+      assert %{
+        "binaryblob" => "WW1sdVlYSjVZbXh2WWc9PQ==",
+        "binaryblobarray" => ["WW1sdVlYSjVZbXh2WW1GeWNtRjVNUT09", "WW1sdVlYSjVZbXh2WW1GeWNtRjVNZz09"],
+        "boolean" => true,
+        "booleanarray" => [true, false],
+        "datetime" => "1970-01-01T00:00:00.000Z",
+        "datetimearray" => ["1970-01-01T00:00:00.000Z", "1970-01-01T11:11:11.111Z"],
+        "double" => 1.1,
+        "doublearray" => [1.1, 2.2],
+        "integer" => 1,
+        "integerarray" => [1, 2],
+        "string" => "string",
+        "stringarray" => ["string1", "string2"]
+       } = List.last(values)
+    end
+
+    test "returns string timestamp when querying the root path", %{
+      device_pid: device_pid
+    } do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
+
+      assert %{
+               "data" => %{
+                "object" => values
+               }
+             } = result
+      assert %{"timestamp" => timestamp} = List.last(values)
+      assert String.valid?(timestamp)
+    end
+
+    test "returns numeric timestamp when querying the root path with keep_milliseconds", %{
+      device_pid: device_pid
+    } do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, query: [keep_milliseconds: true])
+
+      assert %{
+        "data" => %{
+         "object" => values
+        }
+      } = result
+      assert %{"timestamp" => timestamp} = List.last(values)
+
+      assert is_integer(timestamp)
+    end
+
+    test "does not return a reception_timestamp when querying the root path", %{
+      device_pid: device_pid
+    } do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
+
+      assert %{
+               "data" => %{
+                "object" => values
+               }
+             } = result
+
+      value = List.last(values)
+
+      refute Map.has_key?(value, "reception_timestamp")
+    end
+
+    test "returns the specified timestamp when querying the root path", %{device_pid: device_pid} do
+      datetime = DateTime.utc_now() |> DateTime.truncate(:millisecond)
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values, timestamp: datetime)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
+
+      %{
+        "data" => %{
+         "object" => values
+        }
+      } = result
+
+      %{"timestamp" => timestamp} = List.last(values)
+
+      assert {:ok, ^datetime, _} = DateTime.from_iso8601(timestamp)
+    end
+
+    test "does not return the reception_timestamp when querying a specific object", %{
+      device_pid: device_pid
+    } do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/object")
+
+      %{"data" => [value | _]} = result
+
+      assert Map.has_key?(value, "timestamp")
+      refute Map.has_key?(value, "reception_timestamp")
+    end
+
+    test "returns numeric timestamp when querying a specific path with keep_milliseconds", %{
+      device_pid: device_pid
+    } do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/object", query: [keep_milliseconds: true])
+
+      %{"data" => [value | _]} = result
+
+      assert Map.has_key?(value, "timestamp")
+      assert is_integer(value["timestamp"])
+    end
+
+    test "returns the specified timestamp when querying a specific object", %{device_pid: device_pid} do
+      datetime = DateTime.utc_now() |> DateTime.truncate(:millisecond)
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values, timestamp: datetime)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/object")
+
+      %{
+        "timestamp" => timestamp,
+      } = List.last(result["data"])
+
+      assert {:ok, ^datetime, _} = DateTime.from_iso8601(timestamp)
+    end
+
+    test "returns the history of values when querying a specific object", %{device_pid: device_pid} do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", %{"double" => 1.1})
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", %{"double" => 2.2})
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/object")
+
+      %{"data" => values} = result
+
+      assert [%{"double" => 2.2}, %{"double" => 1.1} | _] = Enum.reverse(values)
+    end
+  end
+
+  describe "test.datastreamObject.Parametric" do
+    @interface "test.datastreamObject.Parametric"
+
+    test "returns all latest values when querying the root path", %{device_pid: device_pid} do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
+
+      assert %{
+               "data" => %{
+                "object" => values
+               }
+             } = result
+
+      assert %{
+        "binaryblob" => "WW1sdVlYSjVZbXh2WWc9PQ==",
+        "binaryblobarray" => ["WW1sdVlYSjVZbXh2WW1GeWNtRjVNUT09", "WW1sdVlYSjVZbXh2WW1GeWNtRjVNZz09"],
+        "boolean" => true,
+        "booleanarray" => [true, false],
+        "datetime" => "1970-01-01T00:00:00.000Z",
+        "datetimearray" => ["1970-01-01T00:00:00.000Z", "1970-01-01T11:11:11.111Z"],
+        "double" => 1.1,
+        "doublearray" => [1.1, 2.2],
+        "integer" => 1,
+        "integerarray" => [1, 2],
+        "string" => "string",
+        "stringarray" => ["string1", "string2"]
+       } = List.last(values)
+    end
+
+    test "returns string timestamp when querying the root path", %{
+      device_pid: device_pid
+    } do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
+
+      assert %{
+               "data" => %{
+                "object" => values
+               }
+             } = result
+      assert %{"timestamp" => timestamp} = List.last(values)
+      assert String.valid?(timestamp)
+    end
+
+    test "returns numeric timestamp when querying the root path with keep_milliseconds", %{
+      device_pid: device_pid
+    } do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, query: [keep_milliseconds: true])
+
+      assert %{
+        "data" => %{
+         "object" => values
+        }
+      } = result
+      assert %{"timestamp" => timestamp} = List.last(values)
+
+      assert is_integer(timestamp)
+    end
+
+    test "does not return a reception_timestamp when querying the root path", %{
+      device_pid: device_pid
+    } do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
+
+      assert %{
+               "data" => %{
+                "object" => values
+               }
+             } = result
+
+      value = List.last(values)
+
+      refute Map.has_key?(value, "reception_timestamp")
+    end
+
+    test "does not return the reception_timestamp when querying a specific object", %{
+      device_pid: device_pid
+    } do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/object")
+
+      %{"data" => [value | _]} = result
+
+      assert Map.has_key?(value, "timestamp")
+      refute Map.has_key?(value, "reception_timestamp")
+    end
+
+    test "returns numeric timestamp when querying a specific path with keep_milliseconds", %{
+      device_pid: device_pid
+    } do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", @sample_values)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/object", query: [keep_milliseconds: true])
+
+      %{"data" => [value | _]} = result
+
+      assert Map.has_key?(value, "timestamp")
+      assert is_integer(value["timestamp"])
+    end
+
+    test "returns the history of values when querying a specific object", %{device_pid: device_pid} do
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", %{"double" => 1.1})
+      :ok = AstarteDevice.send_datastream(device_pid, @interface, "/object", %{"double" => 2.2})
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/object")
+
+      %{"data" => values} = result
+
+      assert [%{"double" => 2.2}, %{"double" => 1.1} | _] = Enum.reverse(values)
+    end
+  end
+
+  describe "test.datastreamObject.ServerOwned" do
+    @interface "test.datastreamObject.ServerOwned"
+
+    test "returns all latest values when querying the root path" do
+      :ok = AstarteAPI.send_datastream(@device_id, @interface, "/object", @sample_values)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
+
+      assert %{
+               "data" => %{
+                "object" => values
+               }
+             } = result
+
+      assert %{
+        "binaryblob" => "YmluYXJ5YmxvYg==",
+        "binaryblobarray" => ["YmluYXJ5YmxvYmFycmF5MQ==", "YmluYXJ5YmxvYmFycmF5Mg=="],
+        "boolean" => true,
+        "booleanarray" => [true, false],
+        "datetime" => "1970-01-01T00:00:00.000Z",
+        "datetimearray" => ["1970-01-01T00:00:00.000Z", "1970-01-01T11:11:11.111Z"],
+        "double" => 1.1,
+        "doublearray" => [1.1, 2.2],
+        "integer" => 1,
+        "integerarray" => [1, 2],
+        "string" => "string",
+        "stringarray" => ["string1", "string2"]
+       } = List.last(values)
+    end
+
+    test "returns string timestamp when querying the root path" do
+      :ok = AstarteAPI.send_datastream(@device_id, @interface, "/object", @sample_values)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
+
+      assert %{
+               "data" => %{
+                "object" => values
+               }
+             } = result
+      assert %{"timestamp" => timestamp} = List.last(values)
+      assert String.valid?(timestamp)
+    end
+
+    test "returns numeric timestamp when querying the root path with keep_milliseconds" do
+      :ok = AstarteAPI.send_datastream(@device_id, @interface, "/object", @sample_values)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, query: [keep_milliseconds: true])
+
+      assert %{
+        "data" => %{
+         "object" => values
+        }
+      } = result
+      assert %{"timestamp" => timestamp} = List.last(values)
+      assert is_integer(timestamp)
+    end
+
+    test "does not return a reception_timestamp when querying the root path" do
+      :ok = AstarteAPI.send_datastream(@device_id, @interface, "/object", @sample_values)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface)
+
+      assert %{
+               "data" => %{
+                "object" => values
+               }
+             } = result
+
+      value = List.last(values)
+
+      refute Map.has_key?(value, "reception_timestamp")
+    end
+
+    test "does not return the reception_timestamp when querying a specific object" do
+      :ok = AstarteAPI.send_datastream(@device_id, @interface, "/object", @sample_values)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/object")
+
+      %{"data" => [value | _]} = result
+
+      assert Map.has_key?(value, "timestamp")
+      refute Map.has_key?(value, "reception_timestamp")
+    end
+
+    test "returns numeric timestamp when querying a specific path with keep_milliseconds", %{
+      device_pid: device_pid
+    } do
+      :ok = AstarteAPI.send_datastream(@device_id, @interface, "/object", @sample_values)
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/object", query: [keep_milliseconds: true])
+
+      %{"data" => [value | _]} = result
+
+      assert Map.has_key?(value, "timestamp")
+      assert is_integer(value["timestamp"])
+    end
+
+    test "returns the history of values when querying a specific object" do
+      :ok = AstarteAPI.send_datastream(@device_id, @interface, "/object", %{"double" => 1.1})
+      :ok = AstarteAPI.send_datastream(@device_id, @interface, "/object", %{"double" => 2.2})
+
+      {:ok, result} = AstarteAPI.get_datastream_data(@device_id, @interface, path: "/object")
+
+      %{"data" => values} = result
+
+      assert [%{"double" => 2.2}, %{"double" => 1.1} | _] = Enum.reverse(values)
+    end
+  end
 
   describe "test.datastreamObject.Simple" do
     @interface "test.datastreamObject.Simple"
@@ -1303,176 +1303,176 @@ defmodule AssertionTest do
     end
   end
 
-  # describe "test.propertiesIndividual.AllowUnset" do
-  #   @interface "test.propertiesIndividual.AllowUnset"
+  describe "test.propertiesIndividual.AllowUnset" do
+    @interface "test.propertiesIndividual.AllowUnset"
 
-  #   test "returns all the properties when querying the root path", %{device_pid: device_pid} do
-  #     Enum.each(@sample_values, fn {type, value} ->
-  #       :ok = AstarteDevice.set_property(device_pid, @interface, "/#{type}", value)
-  #     end)
+    test "returns all the properties when querying the root path", %{device_pid: device_pid} do
+      Enum.each(@sample_values, fn {type, value} ->
+        :ok = AstarteDevice.set_property(device_pid, @interface, "/#{type}", value)
+      end)
 
-  #     {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface)
+      {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface)
 
-  #     assert %{"data" => %{
-  #       "binaryblob" => "WW1sdVlYSjVZbXh2WWc9PQ==",
-  #       "binaryblobarray" => ["WW1sdVlYSjVZbXh2WW1GeWNtRjVNUT09", "WW1sdVlYSjVZbXh2WW1GeWNtRjVNZz09"],
-  #       "boolean" => true,
-  #       "booleanarray" => [true, false],
-  #       "datetime" => "1970-01-01T00:00:00.000Z",
-  #       "datetimearray" => ["1970-01-01T00:00:00.000Z", "1970-01-01T11:11:11.111Z"],
-  #       "double" => 1.1,
-  #       "doublearray" => [1.1, 2.2],
-  #       "integer" => 1,
-  #       "integerarray" => [1, 2],
-  #       "string" => "string",
-  #       "stringarray" => ["string1", "string2"]
-  #     }} = result
-  #   end
+      assert %{"data" => %{
+        "binaryblob" => "WW1sdVlYSjVZbXh2WWc9PQ==",
+        "binaryblobarray" => ["WW1sdVlYSjVZbXh2WW1GeWNtRjVNUT09", "WW1sdVlYSjVZbXh2WW1GeWNtRjVNZz09"],
+        "boolean" => true,
+        "booleanarray" => [true, false],
+        "datetime" => "1970-01-01T00:00:00.000Z",
+        "datetimearray" => ["1970-01-01T00:00:00.000Z", "1970-01-01T11:11:11.111Z"],
+        "double" => 1.1,
+        "doublearray" => [1.1, 2.2],
+        "integer" => 1,
+        "integerarray" => [1, 2],
+        "string" => "string",
+        "stringarray" => ["string1", "string2"]
+      }} = result
+    end
 
-  #   test "does not return a property where nil was published when querying the root path", %{device_pid: device_pid} do
-  #     :ok = AstarteDevice.set_property(device_pid, @interface, "/double", 1.1)
-  #     {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface)
+    test "does not return a property where nil was published when querying the root path", %{device_pid: device_pid} do
+      :ok = AstarteDevice.set_property(device_pid, @interface, "/double", 1.1)
+      {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface)
 
-  #     assert Map.has_key?(result["data"], "double")
+      assert Map.has_key?(result["data"], "double")
 
-  #     :ok = AstarteDevice.set_property(device_pid, @interface, "/double", nil)
-  #     {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface)
+      :ok = AstarteDevice.set_property(device_pid, @interface, "/double", nil)
+      {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface)
 
-  #     refute Map.has_key?(result["data"], "double")
-  #   end
+      refute Map.has_key?(result["data"], "double")
+    end
 
-  #   test "does not return a property that was deleted when querying the root path", %{device_pid: device_pid} do
-  #     :ok = AstarteDevice.set_property(device_pid, @interface, "/double", 1.1)
-  #     {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface)
+    test "does not return a property that was deleted when querying the root path", %{device_pid: device_pid} do
+      :ok = AstarteDevice.set_property(device_pid, @interface, "/double", 1.1)
+      {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface)
 
-  #     assert Map.has_key?(result["data"], "double")
+      assert Map.has_key?(result["data"], "double")
 
-  #     :ok = AstarteDevice.unset_property(device_pid, @interface, "/double")
-  #     {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface)
+      :ok = AstarteDevice.unset_property(device_pid, @interface, "/double")
+      {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface)
 
-  #     refute Map.has_key?(result["data"], "double")
-  #   end
+      refute Map.has_key?(result["data"], "double")
+    end
 
-  #   test "returns the single value when querying a specific path", %{device_pid: device_pid} do
-  #     :ok = AstarteDevice.set_property(device_pid, @interface, "/double", 1.1)
-  #     {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface, path: "/double")
+    test "returns the single value when querying a specific path", %{device_pid: device_pid} do
+      :ok = AstarteDevice.set_property(device_pid, @interface, "/double", 1.1)
+      {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface, path: "/double")
 
-  #     assert %{
-  #       "data" => 1.1
-  #     } = result
-  #   end
+      assert %{
+        "data" => 1.1
+      } = result
+    end
 
-  #   test "if nil was published, returns empty map when querying a specific path", %{device_pid: device_pid} do
-  #     :ok = AstarteDevice.set_property(device_pid, @interface, "/double", 1.1)
-  #     :ok = AstarteDevice.set_property(device_pid, @interface, "/double", nil)
-  #     {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface, path: "/double")
+    test "if nil was published, returns empty map when querying a specific path", %{device_pid: device_pid} do
+      :ok = AstarteDevice.set_property(device_pid, @interface, "/double", 1.1)
+      :ok = AstarteDevice.set_property(device_pid, @interface, "/double", nil)
+      {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface, path: "/double")
 
-  #     assert result["data"] == %{}
-  #   end
+      assert result["data"] == %{}
+    end
 
-  #   test "returns empty map instead of a value if the property was deleted when querying a specific path", %{device_pid: device_pid} do
-  #     :ok = AstarteDevice.set_property(device_pid, @interface, "/double", 1.1)
-  #     :ok = AstarteDevice.unset_property(device_pid, @interface, "/double")
-  #     {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface, path: "/double")
+    test "returns empty map instead of a value if the property was deleted when querying a specific path", %{device_pid: device_pid} do
+      :ok = AstarteDevice.set_property(device_pid, @interface, "/double", 1.1)
+      :ok = AstarteDevice.unset_property(device_pid, @interface, "/double")
+      {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface, path: "/double")
 
-  #     assert result["data"] == %{}
-  #   end
-  # end
+      assert result["data"] == %{}
+    end
+  end
 
-  # describe "test.propertiesIndividual.Parametric" do
-  #   @interface "test.propertiesIndividual.Parametric"
+  describe "test.propertiesIndividual.Parametric" do
+    @interface "test.propertiesIndividual.Parametric"
 
-  #   test "returns all the properties when querying the root path", %{device_pid: device_pid} do
-  #     :ok = AstarteDevice.set_property(device_pid, @interface, "/param1", 1.1)
-  #     :ok = AstarteDevice.set_property(device_pid, @interface, "/param2", 2.2)
+    test "returns all the properties when querying the root path", %{device_pid: device_pid} do
+      :ok = AstarteDevice.set_property(device_pid, @interface, "/param1", 1.1)
+      :ok = AstarteDevice.set_property(device_pid, @interface, "/param2", 2.2)
 
-  #     {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface)
+      {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface)
 
-  #     assert %{"data" => %{
-  #       "param1" => 1.1,
-  #       "param2" => 2.2
-  #     }} = result
-  #   end
+      assert %{"data" => %{
+        "param1" => 1.1,
+        "param2" => 2.2
+      }} = result
+    end
 
-  #   test "returns the single value when querying a specific path", %{device_pid: device_pid} do
-  #     :ok = AstarteDevice.set_property(device_pid, @interface, "/double", 1.1)
-  #     {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface, path: "/double")
+    test "returns the single value when querying a specific path", %{device_pid: device_pid} do
+      :ok = AstarteDevice.set_property(device_pid, @interface, "/double", 1.1)
+      {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface, path: "/double")
 
-  #     assert %{
-  #       "data" => 1.1
-  #     } = result
-  #   end
-  # end
+      assert %{
+        "data" => 1.1
+      } = result
+    end
+  end
 
-  # describe "test.propertiesIndividual.ServerOwned" do
-  #   @interface "test.propertiesIndividual.ServerOwned"
+  describe "test.propertiesIndividual.ServerOwned" do
+    @interface "test.propertiesIndividual.ServerOwned"
 
-  #   test "returns all the properties when querying the root path" do
-  #     Enum.each(@sample_values, fn {type, value} ->
-  #       :ok = AstarteAPI.set_property(@device_id, @interface, "/#{type}", value)
-  #     end)
+    test "returns all the properties when querying the root path" do
+      Enum.each(@sample_values, fn {type, value} ->
+        :ok = AstarteAPI.set_property(@device_id, @interface, "/#{type}", value)
+      end)
 
-  #     {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface)
+      {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface)
 
-  #     assert %{"data" => %{
-  #       "binaryblob" => "YmluYXJ5YmxvYg==",
-  #       "binaryblobarray" => ["YmluYXJ5YmxvYmFycmF5MQ==", "YmluYXJ5YmxvYmFycmF5Mg=="],
-  #       "boolean" => true,
-  #       "booleanarray" => [true, false],
-  #       "datetime" => "1970-01-01T00:00:00.000Z",
-  #       "datetimearray" => ["1970-01-01T00:00:00.000Z", "1970-01-01T11:11:11.111Z"],
-  #       "double" => 1.1,
-  #       "doublearray" => [1.1, 2.2],
-  #       "integer" => 1,
-  #       "integerarray" => [1, 2],
-  #       "string" => "string",
-  #       "stringarray" => ["string1", "string2"]
-  #     }} = result
-  #   end
+      assert %{"data" => %{
+        "binaryblob" => "YmluYXJ5YmxvYg==",
+        "binaryblobarray" => ["YmluYXJ5YmxvYmFycmF5MQ==", "YmluYXJ5YmxvYmFycmF5Mg=="],
+        "boolean" => true,
+        "booleanarray" => [true, false],
+        "datetime" => "1970-01-01T00:00:00.000Z",
+        "datetimearray" => ["1970-01-01T00:00:00.000Z", "1970-01-01T11:11:11.111Z"],
+        "double" => 1.1,
+        "doublearray" => [1.1, 2.2],
+        "integer" => 1,
+        "integerarray" => [1, 2],
+        "string" => "string",
+        "stringarray" => ["string1", "string2"]
+      }} = result
+    end
 
-  #   test "returns the single value when querying a specific path" do
-  #     :ok = AstarteAPI.set_property(@device_id, @interface, "/double", 1.1)
-  #     {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface, path: "/double")
+    test "returns the single value when querying a specific path" do
+      :ok = AstarteAPI.set_property(@device_id, @interface, "/double", 1.1)
+      {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface, path: "/double")
 
-  #     assert %{
-  #       "data" => 1.1
-  #     } = result
-  #   end
-  # end
+      assert %{
+        "data" => 1.1
+      } = result
+    end
+  end
 
-  # describe "test.propertiesIndividual.Simple" do
-  #   @interface "test.propertiesIndividual.Simple"
+  describe "test.propertiesIndividual.Simple" do
+    @interface "test.propertiesIndividual.Simple"
 
-  #   test "returns all the properties when querying the root path", %{device_pid: device_pid} do
-  #     Enum.each(@sample_values, fn {type, value} ->
-  #       :ok = AstarteDevice.set_property(device_pid, @interface, "/#{type}", value)
-  #     end)
+    test "returns all the properties when querying the root path", %{device_pid: device_pid} do
+      Enum.each(@sample_values, fn {type, value} ->
+        :ok = AstarteDevice.set_property(device_pid, @interface, "/#{type}", value)
+      end)
 
-  #     {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface)
+      {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface)
 
-  #     assert %{"data" => %{
-  #       "binaryblob" => "WW1sdVlYSjVZbXh2WWc9PQ==",
-  #       "binaryblobarray" => ["WW1sdVlYSjVZbXh2WW1GeWNtRjVNUT09", "WW1sdVlYSjVZbXh2WW1GeWNtRjVNZz09"],
-  #       "boolean" => true,
-  #       "booleanarray" => [true, false],
-  #       "datetime" => "1970-01-01T00:00:00.000Z",
-  #       "datetimearray" => ["1970-01-01T00:00:00.000Z", "1970-01-01T11:11:11.111Z"],
-  #       "double" => 1.1,
-  #       "doublearray" => [1.1, 2.2],
-  #       "integer" => 1,
-  #       "integerarray" => [1, 2],
-  #       "string" => "string",
-  #       "stringarray" => ["string1", "string2"]
-  #     }} = result
-  #   end
+      assert %{"data" => %{
+        "binaryblob" => "WW1sdVlYSjVZbXh2WWc9PQ==",
+        "binaryblobarray" => ["WW1sdVlYSjVZbXh2WW1GeWNtRjVNUT09", "WW1sdVlYSjVZbXh2WW1GeWNtRjVNZz09"],
+        "boolean" => true,
+        "booleanarray" => [true, false],
+        "datetime" => "1970-01-01T00:00:00.000Z",
+        "datetimearray" => ["1970-01-01T00:00:00.000Z", "1970-01-01T11:11:11.111Z"],
+        "double" => 1.1,
+        "doublearray" => [1.1, 2.2],
+        "integer" => 1,
+        "integerarray" => [1, 2],
+        "string" => "string",
+        "stringarray" => ["string1", "string2"]
+      }} = result
+    end
 
-  #   test "returns the single value when querying a specific path", %{device_pid: device_pid} do
-  #     :ok = AstarteDevice.set_property(device_pid, @interface, "/double", 1.1)
-  #     {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface, path: "/double")
+    test "returns the single value when querying a specific path", %{device_pid: device_pid} do
+      :ok = AstarteDevice.set_property(device_pid, @interface, "/double", 1.1)
+      {:ok, result} = AstarteAPI.get_properties_data(@device_id, @interface, path: "/double")
 
-  #     assert %{
-  #       "data" => 1.1
-  #     } = result
-  #   end
-  # end
+      assert %{
+        "data" => 1.1
+      } = result
+    end
+  end
 end
