@@ -32,6 +32,14 @@ config :logger, :console,
     :tag
   ]
 
+config :astarte_appengine_api, Astarte.AppEngine.API.Repo,
+  # List of database connection endpoints
+  contact_points: ["127.0.0.1"],
+  log: :info,
+  stacktrace: true,
+  show_sensitive_data_on_connection_error: true,
+  pool_size: 10
+
 # Set a higher stacktrace during development. Avoid configuring such
 # in production as building large stacktraces may be expensive.
 config :phoenix, :stacktrace_depth, 20

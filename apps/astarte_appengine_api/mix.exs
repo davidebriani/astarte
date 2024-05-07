@@ -106,6 +106,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
       {:ash, "~> 3.0-dev"},
       {:ash_graphql, "~> 1.0-dev"},
+      {:ash_sql, "~> 0.1"},
       {:picosat_elixir, "~> 0.2"},
       {:exandra, "~> 0.10"},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue

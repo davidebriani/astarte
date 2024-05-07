@@ -49,6 +49,7 @@ defmodule Astarte.AppEngine.API.Application do
     # Define workers and child supervisors to be supervised
     children = [
       Astarte.AppEngine.APIWeb.Telemetry,
+      Astarte.AppEngine.API.Repo,
       {Phoenix.PubSub, name: Astarte.AppEngine.API.PubSub},
       Astarte.RPC.AMQP.Client,
       Astarte.AppEngine.API.Rooms.MasterSupervisor,

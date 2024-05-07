@@ -48,6 +48,21 @@ defmodule Astarte.AppEngine.APIWeb.Router do
     plug :maybe_halt_swagger
   end
 
+  pipeline :graphql do
+    plug AshGraphql.Plug
+  end
+
+  forward "/graphiql",
+          Absinthe.Plug.GraphiQL,
+          schema: Module.concat(["Astarte.AppEngine.APIWeb.Schema"]),
+          interface: :playground
+
+  scope "/v2/:realm_name/gql" do
+    pipe_through [:graphql]
+
+    match :*, "/", Absinthe.Plug, schema: Module.concat(["Astarte.AppEngine.APIWeb.Schema"])
+  end
+
   scope "/v1/:realm_name", Astarte.AppEngine.APIWeb do
     pipe_through :realm_api
 
