@@ -156,7 +156,7 @@ defmodule Astarte.AppEngine.APIWeb.GraphqlCase do
       Astarte.Core.Device.random_device_id()
       |> Astarte.Core.Device.encode_device_id()
 
-    params = Enum.into(opts, %{id: default_device_id})
+    params = Enum.into(opts, %{device_id: default_device_id})
 
     Device
     |> Ash.Changeset.for_create(:create, params, tenant: tenant)

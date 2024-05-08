@@ -1,7 +1,11 @@
 defmodule Astarte.AppEngine.API.Devices.Device.DeviceId do
   use Ash.Type
+  use AshGraphql.Type
 
   alias Astarte.Core.Device
+
+  @impl true
+  def graphql_type(_), do: :string
 
   # Mainly taken from Ash.Type.UUID
   @impl true

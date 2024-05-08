@@ -15,12 +15,16 @@ defmodule Astarte.AppEngine.API.Devices.Device do
     end
   end
 
+  multitenancy do
+    strategy :context
+  end
+
   actions do
     defaults [:read, create: :*]
   end
 
   attributes do
-    attribute :id, DeviceId do
+    attribute :device_id, DeviceId do
       primary_key? true
       allow_nil? false
       public? true
