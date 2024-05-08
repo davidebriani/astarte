@@ -33,6 +33,9 @@ defmodule Astarte.AppEngine.API.Devices.Device.DeviceId do
   end
 
   @impl true
+  def cast_in_query?(_), do: false
+
+  @impl true
   def cast_stored(nil, _), do: {:ok, nil}
 
   def cast_stored(value, constraints) do

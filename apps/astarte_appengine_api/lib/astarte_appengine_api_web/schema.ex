@@ -1,7 +1,9 @@
 defmodule Astarte.AppEngine.APIWeb.Schema do
   use Absinthe.Schema
 
-  use AshGraphql, domains: [Astarte.AppEngine.API.Devices]
+  use AshGraphql,
+    relay_ids?: true,
+    domains: [Astarte.AppEngine.API.Devices]
 
   query do
   end

@@ -1,5 +1,5 @@
 defmodule AshScyllaDB.DataLayer do
-  import Ecto.Query, only: [from: 2, subquery: 1]
+  import Ecto.Query, only: [from: 2]
 
   alias Astarte.AppEngine.API.Devices.Device
 
@@ -49,6 +49,8 @@ defmodule AshScyllaDB.DataLayer do
   def can?(_, :read), do: true
   def can?(_, :create), do: true
   def can?(_, :multitenancy), do: true
+  def can?(_, :select), do: true
+  def can?(_, :limit), do: true
 
   def can?(resource, op) do
     Logger.info("Requested: can?(#{inspect(resource)}, #{inspect(op)})")
@@ -61,8 +63,54 @@ defmodule AshScyllaDB.DataLayer do
   end
 
   @impl true
+  def set_context(resource, data_layer_query, context) do
+    AshSql.Query.set_context(resource, data_layer_query, AshScyllaDB.SqlImplementation, context)
+  end
+
+  @impl true
+  def limit(query, nil, _), do: {:ok, query}
+
+  def limit(query, limit, _resource) do
+    {:ok, from(row in query, limit: ^limit)}
+  end
+
+  @impl true
+  def select(query, select, resource) do
+    query = AshSql.Bindings.default_bindings(query, resource, AshScyllaDB.SqlImplementation)
+
+    {:ok,
+     from(row in query,
+       select: struct(row, ^Enum.uniq(select))
+     )}
+  end
+
+  @impl true
+  def set_tenant(_resource, query, tenant) do
+    {:ok, Map.put(Ecto.Query.put_query_prefix(query, to_string(tenant)), :__tenant__, tenant)}
+  end
+
+  @impl true
   def run_query(query, resource) do
-    {:ok, []}
+    with_sort_applied =
+      if query.__ash_bindings__[:sort_applied?] do
+        {:ok, query}
+      else
+        # :direct since ScyllaDB doesn't support :window
+        AshSql.Sort.apply_sort(query, query.__ash_bindings__[:sort], resource, :direct)
+      end
+
+    with {:ok, query} <- with_sort_applied do
+      primary_key = Ash.Resource.Info.primary_key(resource)
+      repo = AshSql.dynamic_repo(resource, AshScyllaDB.SqlImplementation, query)
+      opts = repo_opts(repo, nil, resource)
+
+      {:ok,
+       repo.all(query, opts)
+       |> Enum.uniq_by(&Map.take(&1, primary_key))}
+    end
+  rescue
+    e ->
+      handle_raised_error(e, __STACKTRACE__, query, resource)
   end
 
   @impl true
@@ -73,10 +121,8 @@ defmodule AshScyllaDB.DataLayer do
       |> ecto_changeset(changeset, :create)
 
     tenant = Map.get(changeset, :to_tenant, changeset.tenant)
-
     repo = AshSql.dynamic_repo(resource, AshScyllaDB.SqlImplementation, changeset)
-
-    opts = AshSql.repo_opts(repo, AshScyllaDB.SqlImplementation, nil, tenant, resource)
+    opts = repo_opts(repo, tenant, resource)
 
     try do
       repo.insert(ecto_changeset, opts)
@@ -128,6 +174,12 @@ defmodule AshScyllaDB.DataLayer do
     |> Ecto.Changeset.change(Map.take(changeset.attributes, attributes_to_change))
     |> Map.update!(:filters, &Map.merge(&1, filters))
     |> add_unique_indexes(record.__struct__, changeset)
+  end
+
+  defp repo_opts(repo, tenant, resource) do
+    opts = AshSql.repo_opts(repo, AshScyllaDB.SqlImplementation, nil, tenant, resource)
+    # TODO: should probably be exposed from the Data Layer config
+    Keyword.put(opts, :uuid_format, :binary)
   end
 
   def to_ecto(nil), do: nil
