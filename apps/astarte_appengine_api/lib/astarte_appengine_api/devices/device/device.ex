@@ -11,7 +11,7 @@ defmodule Astarte.AppEngine.API.Devices.Device do
 
     queries do
       get :device, :read
-      list :devices, :read, paginate_with: nil
+      list :devices, :read, relay?: true
     end
   end
 
@@ -20,7 +20,16 @@ defmodule Astarte.AppEngine.API.Devices.Device do
   end
 
   actions do
-    defaults [:read, create: :*]
+    defaults create: :*
+
+    read :read do
+      primary? true
+
+      pagination do
+        keyset? true
+        required? false
+      end
+    end
   end
 
   attributes do

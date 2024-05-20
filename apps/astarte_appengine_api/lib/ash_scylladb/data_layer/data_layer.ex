@@ -2,6 +2,7 @@ defmodule AshScyllaDB.DataLayer do
   import Ecto.Query, only: [from: 2]
 
   alias Astarte.AppEngine.API.Devices.Device
+  require Ash.Expr
 
   @scylladb %Spark.Dsl.Section{
     name: :scylladb,
@@ -51,6 +52,14 @@ defmodule AshScyllaDB.DataLayer do
   def can?(_, :multitenancy), do: true
   def can?(_, :select), do: true
   def can?(_, :limit), do: true
+  def can?(_, :boolean_filter), do: true
+  def can?(_, :filter), do: true
+  def can?(_, :nested_expressions), do: true
+  def can?(_, {:filter_expr, _}), do: true
+  def can?(_, :sort), do: true
+  def can?(_, :distinct_sort), do: false
+  def can?(_, :distinct), do: false
+  def can?(_, {:sort, _}), do: true
 
   def can?(resource, op) do
     Logger.info("Requested: can?(#{inspect(resource)}, #{inspect(op)})")
@@ -85,6 +94,59 @@ defmodule AshScyllaDB.DataLayer do
   end
 
   @impl true
+  def filter(query, filter, resource) do
+    with {:ok, filter} <- adjust_clustering_key_filter(filter, resource) do
+      AshSql.Filter.filter(query, filter, resource)
+    end
+  end
+
+  # TODO: ugly, but 1) make it work 2) make it beautiful.
+  # Here we've hardcoded a specific expression, but the high level idea would be:
+  # if a filter involves the clustering key and it's not an equality filter (i.e. == and IN),
+  # wrap both the lhs and rhs of the filter in `token()`. This allows Ash to make keyset
+  # pagination work
+  defp adjust_clustering_key_filter(
+         %{expression: %{left: %{attribute: %{name: :device_id}}}} = filter,
+         Device
+       ) do
+    # TODO: this should be handled at the DeviceId type level but I didn't find a smart way to do it
+    # without shaving too many yaks
+    uuid = device_id_to_uuid!(filter.expression.right)
+
+    # We're not handling all possible operations but this works fine for our current usecase
+    expr =
+      case filter.expression do
+        %Ash.Query.Operator.GreaterThan{} ->
+          Ash.Expr.expr(fragment("token(device_id) > token(?)", ^uuid))
+
+        %Ash.Query.Operator.LessThan{} ->
+          Ash.Expr.expr(fragment("token(device_id) < token(?)", ^uuid))
+      end
+
+    context = %{resource: Device}
+
+    with {:ok, hydrated} <- Ash.Filter.hydrate_refs(expr, context) do
+      {:ok, %{filter | expression: hydrated}}
+    end
+  end
+
+  defp adjust_clustering_key_filter(filter, _resource), do: {:ok, filter}
+
+  defp device_id_to_uuid!(device_id) do
+    {:ok, decoded_id} = Astarte.Core.Device.decode_device_id(device_id)
+    Ecto.UUID.cast!(decoded_id)
+  end
+
+  @impl true
+  def sort(query, sort, Device) do
+    # TODO: we silently drop sort for now to make pagination work.
+    # We should instead accept sort only on clustering keys _only_ if we have
+    # an equality filter (== or IN) on the clustering key, since that's the
+    # only operation allowed by Scylla
+    {:ok, query}
+  end
+
+  @impl true
   def set_tenant(_resource, query, tenant) do
     {:ok, Map.put(Ecto.Query.put_query_prefix(query, to_string(tenant)), :__tenant__, tenant)}
   end
@@ -96,6 +158,7 @@ defmodule AshScyllaDB.DataLayer do
         {:ok, query}
       else
         # :direct since ScyllaDB doesn't support :window
+        # TODO: here is where we should check if we can sort or not (see sort/3)
         AshSql.Sort.apply_sort(query, query.__ash_bindings__[:sort], resource, :direct)
       end
 
