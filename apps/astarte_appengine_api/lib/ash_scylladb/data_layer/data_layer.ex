@@ -95,8 +95,9 @@ defmodule AshScyllaDB.DataLayer do
 
   @impl true
   def filter(query, filter, resource) do
-    with {:ok, filter} <- adjust_clustering_key_filter(filter, resource) do
-      AshSql.Filter.filter(query, filter, resource)
+    with {:ok, filter} <- adjust_clustering_key_filter(filter, resource),
+         {:ok, query} <- AshSql.Filter.filter(query, filter, resource) do
+      {:ok, populate_allow_filtering_conditions(query, filter.expression, resource)}
     end
   end
 
@@ -137,6 +138,23 @@ defmodule AshScyllaDB.DataLayer do
     Ecto.UUID.cast!(decoded_id)
   end
 
+  # TODO: simplified, just demonstrating it's feasible
+  defp populate_allow_filtering_conditions(query, %{left: %{attribute: %{name: name}}}, Device)
+       when name != :device_id do
+    # The idea here is to use introspection on the resource to mark the query with allow filtering
+    # conditions. We then check them in `run_query` to decide if we should pass ALLOW FILTERING
+    # We can't do it directly here because the conditions are complex and depend on multiple filters
+    Map.update!(query, :__ash_bindings__, &Map.put(&1, :filter_on_non_primary_key?, true))
+  end
+
+  defp populate_allow_filtering_conditions(query, %Ash.Query.BooleanExpression{} = expr, resource) do
+    query
+    |> populate_allow_filtering_conditions(expr.left, resource)
+    |> populate_allow_filtering_conditions(expr.right, resource)
+  end
+
+  defp populate_allow_filtering_conditions(query, _filter, _resource), do: query
+
   @impl true
   def sort(query, sort, Device) do
     # TODO: we silently drop sort for now to make pagination work.
@@ -153,16 +171,8 @@ defmodule AshScyllaDB.DataLayer do
 
   @impl true
   def run_query(query, resource) do
-    with_sort_applied =
-      if query.__ash_bindings__[:sort_applied?] do
-        {:ok, query}
-      else
-        # :direct since ScyllaDB doesn't support :window
-        # TODO: here is where we should check if we can sort or not (see sort/3)
-        AshSql.Sort.apply_sort(query, query.__ash_bindings__[:sort], resource, :direct)
-      end
-
-    with {:ok, query} <- with_sort_applied do
+    with {:ok, query} <- apply_sort(query, resource) do
+      query = maybe_allow_filtering(query, resource)
       primary_key = Ash.Resource.Info.primary_key(resource)
       repo = AshSql.dynamic_repo(resource, AshScyllaDB.SqlImplementation, query)
       opts = repo_opts(repo, nil, resource)
@@ -174,6 +184,34 @@ defmodule AshScyllaDB.DataLayer do
   rescue
     e ->
       handle_raised_error(e, __STACKTRACE__, query, resource)
+  end
+
+  defp apply_sort(query, resource) do
+    if query.__ash_bindings__[:sort_applied?] do
+      {:ok, query}
+    else
+      # :direct since ScyllaDB doesn't support :window
+      # TODO: here is where we should check if we can sort or not (see sort/3)
+      AshSql.Sort.apply_sort(query, query.__ash_bindings__[:sort], resource, :direct)
+    end
+  end
+
+  defp maybe_allow_filtering(query, _resource) do
+    allow_filtering? =
+      cond do
+        # If we're filtering on a non primary key
+        query.__ash_bindings__[:filter_on_non_primary_key?] ->
+          true
+
+        true ->
+          false
+      end
+
+    if allow_filtering? do
+      from(row in query, hints: "ALLOW FILTERING")
+    else
+      query
+    end
   end
 
   @impl true

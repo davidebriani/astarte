@@ -59,6 +59,70 @@ defmodule Astarte.AppEngine.APIWeb.Schema.Queries.DevicesTest do
       assert device_2["deviceId"] != device_3["deviceId"]
       assert device_3["deviceId"] != device_1["deviceId"]
     end
+
+    test "can filter with equality", %{realm: realm} do
+      online_fixture = device_fixture(tenant: realm, connected: true)
+      _offline_fixture = device_fixture(tenant: realm, connected: false)
+
+      filter = %{"connected" => %{"eq" => true}}
+
+      assert %{"edges" => [%{"node" => device}]} =
+               devices_query(tenant: realm, filter: filter)
+               |> extract_result!()
+
+      assert device["deviceId"] == online_fixture.device_id
+    end
+
+    test "can filter with comparison", %{realm: realm} do
+      recently_connected_fixture =
+        device_fixture(tenant: realm, last_connection: truncated_utc_now())
+
+      two_days_ago = truncated_utc_now() |> DateTime.add(-48, :hour)
+
+      _not_recently_connected_fixture =
+        device_fixture(tenant: realm, last_connection: two_days_ago)
+
+      one_day_ago =
+        truncated_utc_now()
+        |> DateTime.add(-24, :hour)
+        |> DateTime.to_iso8601()
+
+      filter = %{"lastConnection" => %{"greater_than" => one_day_ago}}
+
+      assert %{"edges" => [%{"node" => device}]} =
+               devices_query(tenant: realm, filter: filter)
+               |> extract_result!()
+
+      assert device["deviceId"] == recently_connected_fixture.device_id
+    end
+
+    test "can combine filters", %{realm: realm} do
+      device_fixture(tenant: realm, total_received_msgs: 1, total_received_bytes: 100)
+      device_fixture(tenant: realm, total_received_msgs: 100, total_received_bytes: 100)
+      device_fixture(tenant: realm, total_received_msgs: 1, total_received_bytes: 1)
+
+      target_1 =
+        device_fixture(tenant: realm, total_received_msgs: 100, total_received_bytes: 1000)
+
+      target_2 =
+        device_fixture(tenant: realm, total_received_msgs: 300, total_received_bytes: 700)
+
+      target_device_ids = [target_1.device_id, target_2.device_id]
+
+      filter = %{
+        "and" => [
+          %{"totalReceivedMsgs" => %{"greater_than" => 50}},
+          %{"totalReceivedBytes" => %{"greater_than" => 500}}
+        ]
+      }
+
+      assert %{"edges" => [%{"node" => device_1}, %{"node" => device_2}]} =
+               devices_query(tenant: realm, filter: filter)
+               |> extract_result!()
+
+      assert device_1["deviceId"] in target_device_ids
+      assert device_2["deviceId"] in target_device_ids
+    end
   end
 
   defp truncated_utc_now do
