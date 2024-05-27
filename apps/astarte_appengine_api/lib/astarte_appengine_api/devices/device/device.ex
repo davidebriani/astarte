@@ -122,5 +122,6 @@ defmodule Astarte.AppEngine.API.Devices.Device do
   scylladb do
     repo Astarte.AppEngine.API.Repo
     table "devices"
+    partition_key [:device_id]
   end
 end

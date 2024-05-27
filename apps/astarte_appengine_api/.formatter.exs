@@ -1,4 +1,6 @@
 spark_locals_without_parens = [
+  clustering_key: 1,
+  partition_key: 1,
   repo: 1
 ]
 

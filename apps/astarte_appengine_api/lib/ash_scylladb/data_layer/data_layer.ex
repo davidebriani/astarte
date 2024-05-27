@@ -29,6 +29,20 @@ defmodule AshScyllaDB.DataLayer do
         doc: """
         The table to store and read the resource from.
         """
+      ],
+      partition_key: [
+        type: {:list, :atom},
+        required: true,
+        doc: """
+        The attributes used as partition key. Must have at least one item.
+        """
+      ],
+      clustering_key: [
+        type: {:list, :atom},
+        default: [],
+        doc: """
+        The attributes used as clustering key, if any.
+        """
       ]
     ]
   }
@@ -37,12 +51,17 @@ defmodule AshScyllaDB.DataLayer do
 
   @sections [@scylladb]
 
+  @verifiers [
+    AshScyllaDB.DataLayer.Verifiers.VerifyPartitionAndClusteringKeys
+  ]
+
   @moduledoc """
   A ScyllaDB data layer that leverages Ecto's Scylla capabilities.
   """
 
   use Spark.Dsl.Extension,
-    sections: @sections
+    sections: @sections,
+    verifiers: @verifiers
 
   require Logger
 
@@ -60,6 +79,7 @@ defmodule AshScyllaDB.DataLayer do
   def can?(_, :distinct_sort), do: false
   def can?(_, :distinct), do: false
   def can?(_, {:sort, _}), do: true
+  def can?(_, :composite_primary_key), do: true
 
   def can?(resource, op) do
     Logger.info("Requested: can?(#{inspect(resource)}, #{inspect(op)})")
