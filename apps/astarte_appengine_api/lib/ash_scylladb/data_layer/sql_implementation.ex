@@ -19,7 +19,11 @@ defmodule AshScyllaDB.SqlImplementation do
 
   # Taken from ash_sqlite and ash_postgres
   @impl true
-  def parameterized_type(type, constraints, no_maps? \\ false)
+  def parameterized_type(type, constraints, no_maps? \\ true)
+
+  def parameterized_type({:parameterized, _} = type, _, _) do
+    type
+  end
 
   def parameterized_type({:parameterized, _, _} = type, _, _) do
     type
@@ -29,8 +33,8 @@ defmodule AshScyllaDB.SqlImplementation do
     parameterized_type({:array, type}, constraints, no_maps?)
   end
 
-  def parameterized_type({:array, type}, constraints, no_maps?) do
-    case parameterized_type(type, constraints[:items] || [], no_maps?) do
+  def parameterized_type({:array, type}, constraints, _) do
+    case parameterized_type(type, constraints[:items] || [], false) do
       nil ->
         nil
 
@@ -39,8 +43,48 @@ defmodule AshScyllaDB.SqlImplementation do
     end
   end
 
-  # We don't handle parameterized types for now since Scylla has a limited support to casting
-  def parameterized_type(_type, _constraints, _no_maps?), do: nil
+  def parameterized_type(type, _constraints, false)
+      when type in [Ash.Type.Map, Ash.Type.Map.EctoType],
+      do: :map
+
+  def parameterized_type(type, _constraints, true)
+      when type in [Ash.Type.Map, Ash.Type.Map.EctoType],
+      do: nil
+
+  def parameterized_type(type, constraints, no_maps?) do
+    if Ash.Type.ash_type?(type) do
+      cast_in_query? =
+        if function_exported?(Ash.Type, :cast_in_query?, 2) do
+          Ash.Type.cast_in_query?(type, constraints)
+        else
+          Ash.Type.cast_in_query?(type)
+        end
+
+      # We _don't_ cast Ash builtin types since Scylla doesn't have wide support
+      # for casting primitive types. We still cast custom types so that we can
+      # use Exandra types
+      if cast_in_query? and not Ash.Type.builtin?(type) do
+        type = Ash.Type.ecto_type(type)
+
+        parameterized_type(type, constraints, no_maps?)
+      else
+        nil
+      end
+    else
+      if is_atom(type) && :erlang.function_exported(type, :type, 1) do
+        type =
+          if type == :ci_string do
+            :citext
+          else
+            type
+          end
+
+        Ecto.ParameterizedType.init(type, constraints || [])
+      else
+        type
+      end
+    end
+  end
 
   # Taken from ash_sqlite and ash_postgres
   @impl true
