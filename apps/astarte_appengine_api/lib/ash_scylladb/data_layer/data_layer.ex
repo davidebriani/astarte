@@ -176,7 +176,7 @@ defmodule AshScyllaDB.DataLayer do
   defp populate_allow_filtering_conditions(query, _filter, _resource), do: query
 
   @impl true
-  def sort(query, sort, Device) do
+  def sort(query, _sort, Device) do
     # TODO: we silently drop sort for now to make pagination work.
     # We should instead accept sort only on clustering keys _only_ if we have
     # an equality filter (== or IN) on the clustering key, since that's the
@@ -261,7 +261,7 @@ defmodule AshScyllaDB.DataLayer do
     end
   end
 
-  defp ecto_changeset(record, changeset, type, table_error? \\ true) do
+  defp ecto_changeset(record, changeset, _type, _table_error? \\ true) do
     filters =
       if changeset.action_type == :create do
         %{}

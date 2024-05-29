@@ -1,9 +1,7 @@
 defmodule Astarte.AppEngine.APIWeb.GraphqlCase do
   use ExUnit.CaseTemplate
 
-  alias ElixirSense.Core.Ast
   alias Astarte.AppEngine.API.Devices.Device
-  alias Astarte.AppEngine.API.Repo
 
   using do
     quote do
@@ -26,7 +24,7 @@ defmodule Astarte.AppEngine.APIWeb.GraphqlCase do
       drop_keyspace(keyspace)
     end)
 
-    setup_keyspace(keyspace, opts)
+    setup_keyspace(opts)
 
     %{start_opts: opts, realm: realm, keyspace: keyspace}
   end
@@ -76,7 +74,7 @@ defmodule Astarte.AppEngine.APIWeb.GraphqlCase do
     "realm#{System.unique_integer([:positive])}"
   end
 
-  defp setup_keyspace(keyspace, opts) do
+  defp setup_keyspace(opts) do
     {:ok, conn} = Xandra.start_link(Keyword.drop(opts, [:sync_connect]))
 
     Xandra.execute!(conn, """

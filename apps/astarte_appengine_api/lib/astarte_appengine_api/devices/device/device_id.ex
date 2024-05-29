@@ -28,7 +28,7 @@ defmodule Astarte.AppEngine.API.Devices.Device.DeviceId do
     end
   end
 
-  def cast_input(value, _) do
+  def cast_input(_value, _) do
     :error
   end
 
@@ -38,7 +38,7 @@ defmodule Astarte.AppEngine.API.Devices.Device.DeviceId do
   @impl true
   def cast_stored(nil, _), do: {:ok, nil}
 
-  def cast_stored(value, constraints) do
+  def cast_stored(value, _constraints) do
     case Ecto.Type.load(Ecto.UUID, value) do
       {:ok, _} ->
         {:ok, Device.encode_device_id(value)}
