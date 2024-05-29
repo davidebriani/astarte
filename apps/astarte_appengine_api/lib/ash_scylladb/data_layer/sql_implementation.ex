@@ -2,6 +2,9 @@ defmodule AshScyllaDB.SqlImplementation do
   @moduledoc false
   use AshSql.Implementation
 
+  # This is a callback module to handle the differences between Sql implementations
+  # across Ecto based data layers
+
   @impl true
   def table(resource) do
     AshScyllaDB.DataLayer.Info.table(resource)
@@ -24,7 +27,7 @@ defmodule AshScyllaDB.SqlImplementation do
   @impl true
   def manual_relationship_subquery_function, do: :ash_scylladb_subquery
 
-  # Taken from ash_sqlite and ash_postgres
+  # Taken from ash_sqlite and ash_postgres, with some exceptions (see comments below)
   @impl true
   def parameterized_type(type, constraints, no_maps? \\ true)
 
@@ -94,6 +97,8 @@ defmodule AshScyllaDB.SqlImplementation do
   end
 
   # Taken from ash_sqlite and ash_postgres
+  # The implemenation looks very similar to the one of `Ash.Type.determine_types/2`. It would
+  # be great to understand how to maybe rely on that instead of copypasting stuff around.
   @impl true
   def determine_types(mod, values) do
     Code.ensure_compiled(mod)

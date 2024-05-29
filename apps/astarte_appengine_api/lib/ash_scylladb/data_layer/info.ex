@@ -1,7 +1,10 @@
 defmodule AshScyllaDB.DataLayer.Info do
-  @moduledoc "Introspection functions for "
+  @moduledoc "Introspection functions for AshScyllaDB Data Layer"
 
   alias Spark.Dsl.Extension
+
+  # Info modules are used in the Ash ecosystem to provide introspection.
+  # Basically they expose stuff contained in the Spark Dsl with a convenient API.
 
   @doc "The configured repo for a resource"
   def repo(resource) do

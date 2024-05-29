@@ -4,6 +4,10 @@ defmodule AshScyllaDB.DataLayer do
   alias Astarte.AppEngine.API.Devices.Device
   require Ash.Expr
 
+  # This, up to and including `use Spark.Dsl.Extension`, is what makes it possible
+  # to use the `scylladb` section in an Ash resource. Check out existing extensions
+  # and the Spark documentation to have more info, but basically you define sections
+  # of the DSL using nested Elixir structs containing all the configuration
   @scylladb %Spark.Dsl.Section{
     name: :scylladb,
     describe: """
@@ -47,25 +51,34 @@ defmodule AshScyllaDB.DataLayer do
     ]
   }
 
-  @behaviour Ash.DataLayer
-
   @sections [@scylladb]
 
+  # Verifiers, as the name implies, are used to verify some properties of the DSL.
+  # There are also transformers (we don't have any here) which are able to transform
+  # the DSL.
   @verifiers [
     AshScyllaDB.DataLayer.Verifiers.VerifyPartitionAndClusteringKeys
   ]
-
-  @moduledoc """
-  A ScyllaDB data layer that leverages Ecto's Scylla capabilities.
-  """
 
   use Spark.Dsl.Extension,
     sections: @sections,
     verifiers: @verifiers
 
+  @moduledoc """
+  A ScyllaDB data layer that leverages Ecto's Scylla capabilities.
+  """
+
+  @behaviour Ash.DataLayer
+
   require Logger
 
+  # Most of the stuff here is inspired and/or outright copy-pasted from AshPostgres or AshSqlite
+  # AshSql ideally should exist to factor out common functionality, and indeed it does, but there's
+  # still some boilerplate needed to handle the differences in Ecto-backed databases.
+
+  # can? is the callback that Ash calls to introspect the capabilities of the data layer
   @impl true
+  # These are things we _can_ do
   def can?(_, :read), do: true
   def can?(_, :create), do: true
   def can?(_, :multitenancy), do: true
@@ -73,24 +86,47 @@ defmodule AshScyllaDB.DataLayer do
   def can?(_, :limit), do: true
   def can?(_, :boolean_filter), do: true
   def can?(_, :filter), do: true
+  def can?(_, :distinct), do: true
   def can?(_, :nested_expressions), do: true
   def can?(_, {:filter_expr, _}), do: true
-  def can?(_, :sort), do: true
-  def can?(_, :distinct_sort), do: false
-  def can?(_, :distinct), do: false
-  def can?(_, {:sort, _}), do: true
   def can?(_, :composite_primary_key), do: true
+  def can?(_, {:atomic, :upsert}), do: true
+  def can?(_, :async_engine), do: true
+  def can?(_, :timeout), do: true
+  def can?(_, :aggregate_filter), do: true
 
+  # We declare we can sort to support pagination but we're dropping it for now,
+  # see sort callback
+  def can?(_, :sort), do: true
+  def can?(_, {:sort, _}), do: true
+
+  # These are things we _can't_ do
+  # No distinct sort in ScyllaDB
+  def can?(_, :distinct_sort), do: false
+  # Scylla doesn't have transactions
+  def can?(_, :transact), do: false
+  # Scylla doesn't support offset
+  def can?(_, :offset), do: false
+  # Scylla has limited support for fancy stuff calculated on the SQL side
+  def can?(_, :expression_calculation), do: false
+
+  # We print additional can? calls so we can manually analyze them as we go
   def can?(resource, op) do
     Logger.info("Requested: can?(#{inspect(resource)}, #{inspect(op)})")
     false
   end
 
+  # This callback initializes a data layer query (not to be confused with an Ash Query)
+  # given a resource. In this case, our data layer query will be an Ecto query, and we
+  # just retrieve the table from the resource introspection and initialize an Ecto
+  # query with it
   @impl true
-  def resource_to_query(resource, _) do
+  def resource_to_query(resource, _domain) do
     from(row in {AshScyllaDB.DataLayer.Info.table(resource) || "", resource}, [])
   end
 
+  # The Ash context contains, duh, some contextual information. We just use AshSql to
+  # handle it here.
   @impl true
   def set_context(resource, data_layer_query, context) do
     AshSql.Query.set_context(resource, data_layer_query, AshScyllaDB.SqlImplementation, context)
@@ -99,20 +135,21 @@ defmodule AshScyllaDB.DataLayer do
   @impl true
   def limit(query, nil, _), do: {:ok, query}
 
+  # We  just apply the limit, nothing fancy
   def limit(query, limit, _resource) do
     {:ok, from(row in query, limit: ^limit)}
   end
 
+  # Same stuff, nothing fancy, just select the columns we're given
   @impl true
-  def select(query, select, resource) do
-    query = AshSql.Bindings.default_bindings(query, resource, AshScyllaDB.SqlImplementation)
-
+  def select(query, select, _resource) do
     {:ok,
      from(row in query,
        select: struct(row, ^Enum.uniq(select))
      )}
   end
 
+  # Here 
   @impl true
   def filter(query, filter, resource) do
     with {:ok, filter} <- adjust_clustering_key_filter(filter, resource),
@@ -146,6 +183,8 @@ defmodule AshScyllaDB.DataLayer do
 
     context = %{resource: Device}
 
+    # Before we replace our filter we have to hydrate it. Basically, filters are actually
+    # templates and hydration replaces the values in the template
     with {:ok, hydrated} <- Ash.Filter.hydrate_refs(expr, context) do
       {:ok, %{filter | expression: hydrated}}
     end
@@ -159,14 +198,20 @@ defmodule AshScyllaDB.DataLayer do
   end
 
   # TODO: simplified, just demonstrating it's feasible
-  defp populate_allow_filtering_conditions(query, %{left: %{attribute: %{name: name}}}, Device)
-       when name != :device_id do
+  defp populate_allow_filtering_conditions(query, %{left: %{attribute: %{name: name}}}, resource) do
+    primary_key = Ash.Resource.Info.primary_key(resource)
+
     # The idea here is to use introspection on the resource to mark the query with allow filtering
     # conditions. We then check them in `run_query` to decide if we should pass ALLOW FILTERING
     # We can't do it directly here because the conditions are complex and depend on multiple filters
-    Map.update!(query, :__ash_bindings__, &Map.put(&1, :filter_on_non_primary_key?, true))
+    if name not in primary_key do
+      Map.update!(query, :__ash_bindings__, &Map.put(&1, :filter_on_non_primary_key?, true))
+    else
+      query
+    end
   end
 
+  # This is needed to check nested binary filter expressions
   defp populate_allow_filtering_conditions(query, %Ash.Query.BooleanExpression{} = expr, resource) do
     query
     |> populate_allow_filtering_conditions(expr.left, resource)
@@ -175,20 +220,21 @@ defmodule AshScyllaDB.DataLayer do
 
   defp populate_allow_filtering_conditions(query, _filter, _resource), do: query
 
+  # Taken from AshPostgres/AshSqlite, it just saves the sort to apply it later
   @impl true
-  def sort(query, _sort, Device) do
-    # TODO: we silently drop sort for now to make pagination work.
-    # We should instead accept sort only on clustering keys _only_ if we have
-    # an equality filter (== or IN) on the clustering key, since that's the
-    # only operation allowed by Scylla
-    {:ok, query}
+  def sort(query, sort, Device) do
+    {:ok, Map.update!(query, :__ash_bindings__, &Map.put(&1, :sort, sort))}
   end
 
+  # Our tenant here is the keyspace, and Exandra supports setting it at the query level using
+  # the query prefix
   @impl true
   def set_tenant(_resource, query, tenant) do
     {:ok, Map.put(Ecto.Query.put_query_prefix(query, to_string(tenant)), :__tenant__, tenant)}
   end
 
+  # Here we take the data layer query, make all the last minute adjustments and run it agains
+  # the 
   @impl true
   def run_query(query, resource) do
     with {:ok, query} <- apply_sort(query, resource) do
@@ -206,16 +252,28 @@ defmodule AshScyllaDB.DataLayer do
       handle_raised_error(e, __STACKTRACE__, query, resource)
   end
 
-  defp apply_sort(query, resource) do
-    if query.__ash_bindings__[:sort_applied?] do
-      {:ok, query}
-    else
-      # :direct since ScyllaDB doesn't support :window
-      # TODO: here is where we should check if we can sort or not (see sort/3)
-      AshSql.Sort.apply_sort(query, query.__ash_bindings__[:sort], resource, :direct)
-    end
+  # We silently drop sort for now to make pagination work.
+  # We should instead accept sort only on clustering keys _only_ if we have
+  # an equality filter (== or IN) on the clustering key, since that's the
+  # only operation allowed by Scylla
+  defp apply_sort(query, _resource) do
+    # This should instead be:
+    #
+    # if query.__ash_bindings__[:sort_applied?] do
+    #   {:ok, query}
+    # else
+    #   # :direct since ScyllaDB doesn't support :window
+    #   # TODO: here is where we should check if we can sort or not
+    #   AshSql.Sort.apply_sort(query, query.__ash_bindings__[:sort], resource, :direct)
+    # end
+
+    {:ok, query}
   end
 
+  # Here we check the conditions we've set in filter/3 and see if we want to add
+  # ALLOW FILTERING. TBH I'm not sure if passing it regardless causes some difference
+  # in the performance in the cases where it's not needed. If it doesn't, this would
+  # probably make sense as an explicit setting on the resource itself (e.g. allow_filtering? true)
   defp maybe_allow_filtering(query, _resource) do
     allow_filtering? =
       cond do
@@ -234,6 +292,7 @@ defmodule AshScyllaDB.DataLayer do
     end
   end
 
+  # Given a type of resource and a changeset, create a record of that type
   @impl true
   def create(resource, changeset) do
     ecto_changeset =
@@ -261,6 +320,8 @@ defmodule AshScyllaDB.DataLayer do
     end
   end
 
+  # Basically everything from here below is copypasted from AshPostgres or AshSqlite removing
+  # stuff that is not relevant in our case (e.g. foreign key constraints etc)
   defp ecto_changeset(record, changeset, _type, _table_error? \\ true) do
     filters =
       if changeset.action_type == :create do
@@ -303,6 +364,9 @@ defmodule AshScyllaDB.DataLayer do
     Keyword.put(opts, :uuid_format, :binary)
   end
 
+  # to_ecto and from_ecto are needed to convert back and forth records in the
+  # Ecto and Ash format. The differences between the two are basically some metadata
+  # and the type of structs for, e.g., not loaded fields
   def to_ecto(nil), do: nil
 
   def to_ecto(value) when is_list(value) do
@@ -366,6 +430,7 @@ defmodule AshScyllaDB.DataLayer do
 
   def from_ecto(other), do: other
 
+  # Here we convert from Ecto Changeset errors to Ash errors
   defp handle_errors({:error, %Ecto.Changeset{errors: errors}}) do
     {:error, Enum.map(errors, &to_ash_error/1)}
   end

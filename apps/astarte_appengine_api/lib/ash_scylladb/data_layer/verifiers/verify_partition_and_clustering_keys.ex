@@ -1,5 +1,5 @@
 defmodule AshScyllaDB.DataLayer.Verifiers.VerifyPartitionAndClusteringKeys do
-  # Validates the paginate_relationship_with option
+  # Validates the partition_key and clustering_key options
   @moduledoc false
 
   use Spark.Dsl.Verifier
@@ -9,6 +9,11 @@ defmodule AshScyllaDB.DataLayer.Verifiers.VerifyPartitionAndClusteringKeys do
   def after_compile?, do: true
 
   def verify(dsl) do
+    # In ScyllaDB we can have 1 or more partition keys and 0 or more clustering keys.
+    # All these together form the primary key. In these verifier we verify that there
+    # are no parts of the primary key left uncovered and that there's no overlap
+    # between the two
+
     primary_key_mapset =
       dsl
       |> Ash.Resource.Info.primary_key()
