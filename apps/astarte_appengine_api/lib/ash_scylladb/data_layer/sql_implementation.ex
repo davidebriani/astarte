@@ -17,6 +17,13 @@ defmodule AshScyllaDB.SqlImplementation do
     nil
   end
 
+  # These two probably don't make much sense in our case, but otherwise the compiler complains
+  # about missing callbacks in the behavior implementation
+  @impl true
+  def manual_relationship_function, do: :ash_scylladb_join
+  @impl true
+  def manual_relationship_subquery_function, do: :ash_scylladb_subquery
+
   # Taken from ash_sqlite and ash_postgres
   @impl true
   def parameterized_type(type, constraints, no_maps? \\ true)
