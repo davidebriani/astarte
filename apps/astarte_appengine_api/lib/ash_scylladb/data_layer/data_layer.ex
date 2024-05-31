@@ -150,76 +150,150 @@ defmodule AshScyllaDB.DataLayer do
      )}
   end
 
-  # Here 
+  # Here we do a couple of adjustments that we are able to do given our introspection
+  # on partition/clustering keys before applying the filter
   @impl true
   def filter(query, filter, resource) do
-    with {:ok, filter} <- adjust_clustering_key_filter(filter, resource),
+    with {:ok, filter} <- adjust_partition_key_filter(filter, resource),
          {:ok, query} <- AshSql.Filter.filter(query, filter, resource) do
-      {:ok, populate_allow_filtering_conditions(query, filter.expression, resource)}
+      {:ok, populate_allow_filtering_conditions(query, filter, resource)}
     end
   end
 
-  # TODO: ugly, but 1) make it work 2) make it beautiful.
-  # Here we've hardcoded a specific expression, but the high level idea would be:
-  # if a filter involves the clustering key and it's not an equality filter (i.e. == and IN),
-  # wrap both the lhs and rhs of the filter in `token()`. This allows Ash to make keyset
-  # pagination work
-  defp adjust_clustering_key_filter(
-         %{expression: %{left: %{attribute: %{name: :device_id}}}} = filter,
-         Device
-       ) do
-    # TODO: this should be handled at the DeviceId type level but I didn't find a smart way to do it
-    # without shaving too many yaks
-    uuid = device_id_to_uuid!(filter.expression.right)
+  # This is the biggest adjustment. Citing the ScyllaDB documentation:
+  #
+  #   Not all relations are allowed in a query. For instance, non-equal relations (where
+  #   IN is considered as an equal relation) on a partition key are not supported (see the
+  #   use of the TOKEN method below to do non-equal queries on the partition key)
+  #
+  # So here we recursively traverse the filter (Ash filters are basically a tree of structs
+  # representing predicates/functions) and if we encounter an inequality operator involving
+  # the partition key we transform the lhs and rhs to token(lhs) and token(rhs)
+  #
+  # Note that this means that foo > 400 will become token(foo) > token(400), but this at
+  # least lets us support pagination. In the future I guess we could also detect when
+  # we're doing this to paginate vs when it's supposed to be an actual inequality, and
+  # return an error in the second case
+  #
+  # Also note that this doesn't cover yet some possible filter expressions (e.g. functions)
+  # but I think this will be enough to get started
+  defp adjust_partition_key_filter(expression, resource) do
+    case expression do
+      %Ash.Filter{expression: expression} = filter ->
+        with {:ok, expression} <- adjust_partition_key_filter(expression, resource) do
+          {:ok, %{filter | expression: expression}}
+        end
 
-    # We're not handling all possible operations but this works fine for our current usecase
-    expr =
-      case filter.expression do
-        %Ash.Query.Operator.GreaterThan{} ->
-          Ash.Expr.expr(fragment("token(device_id) > token(?)", ^uuid))
+      %Ash.Query.Not{expression: expression} = not_expr ->
+        with {:ok, expression} <- adjust_partition_key_filter(expression, resource) do
+          {:ok, %{not_expr | expression: expression}}
+        end
 
-        %Ash.Query.Operator.LessThan{} ->
-          Ash.Expr.expr(fragment("token(device_id) < token(?)", ^uuid))
-      end
+      %Ash.Query.BooleanExpression{left: left, right: right} = expression ->
+        with {:ok, left} <- adjust_partition_key_filter(left, resource),
+             {:ok, right} <- adjust_partition_key_filter(right, resource) do
+          {:ok, %{expression | left: left, right: right}}
+        end
 
-    context = %{resource: Device}
-
-    # Before we replace our filter we have to hydrate it. Basically, filters are actually
-    # templates and hydration replaces the values in the template
-    with {:ok, hydrated} <- Ash.Filter.hydrate_refs(expr, context) do
-      {:ok, %{filter | expression: hydrated}}
+      %{__operator__?: true} = op ->
+        if involves_partition_key?(op, resource) and not supported_partition_key_operator?(op) do
+          convert_to_token_op(op, resource)
+        else
+          {:ok, op}
+        end
     end
   end
 
-  defp adjust_clustering_key_filter(filter, _resource), do: {:ok, filter}
-
-  defp device_id_to_uuid!(device_id) do
-    {:ok, decoded_id} = Astarte.Core.Device.decode_device_id(device_id)
-    Ecto.UUID.cast!(decoded_id)
-  end
-
-  # TODO: simplified, just demonstrating it's feasible
-  defp populate_allow_filtering_conditions(query, %{left: %{attribute: %{name: name}}}, resource) do
-    primary_key = Ash.Resource.Info.primary_key(resource)
-
-    # The idea here is to use introspection on the resource to mark the query with allow filtering
-    # conditions. We then check them in `run_query` to decide if we should pass ALLOW FILTERING
-    # We can't do it directly here because the conditions are complex and depend on multiple filters
-    if name not in primary_key do
-      Map.update!(query, :__ash_bindings__, &Map.put(&1, :filter_on_non_primary_key?, true))
-    else
-      query
+  defp convert_to_token_op(op, resource) do
+    with {:ok, expr} <- token_expr(op) do
+      context = %{resource: resource}
+      # Before we replace our filter we have to hydrate it. Basically, expressions are actually
+      # templates and hydration replaces the values in the template
+      Ash.Filter.hydrate_refs(expr, context)
     end
   end
 
-  # This is needed to check nested binary filter expressions
-  defp populate_allow_filtering_conditions(query, %Ash.Query.BooleanExpression{} = expr, resource) do
-    query
-    |> populate_allow_filtering_conditions(expr.left, resource)
-    |> populate_allow_filtering_conditions(expr.right, resource)
+  # Here we take all the possible inequality operators and replace them with a fragment
+  # wrapping the lhs and rhs in the token() function.
+  # For != we just return an error since it doesn't make sense even with token.
+  defp token_expr(op) do
+    case op do
+      %Ash.Query.Operator.GreaterThan{} ->
+        {:ok, Ash.Expr.expr(fragment("token(?) > token(?)", ^op.left, ^op.right))}
+
+      %Ash.Query.Operator.GreaterThanOrEqual{} ->
+        {:ok, Ash.Expr.expr(fragment("token(?) >= token(?)", ^op.left, ^op.right))}
+
+      %Ash.Query.Operator.LessThan{} ->
+        {:ok, Ash.Expr.expr(fragment("token(?) < token(?)", ^op.left, ^op.right))}
+
+      %Ash.Query.Operator.LessThanOrEqual{} ->
+        {:ok, Ash.Expr.expr(fragment("token(?) <= token(?)", ^op.left, ^op.right))}
+
+      %Ash.Query.Operator.NotEq{} ->
+        {:error, "cannot use != in an expression involving a partition key"}
+    end
   end
 
-  defp populate_allow_filtering_conditions(query, _filter, _resource), do: query
+  # If the lhs or the rhs is an attribute, we check if it's included in the partition key
+  defp involves_partition_key?(%{left: %{attribute: %{name: name}}}, resource) do
+    name in AshScyllaDB.DataLayer.Info.partition_key(resource)
+  end
+
+  defp involves_partition_key?(%{right: %{attribute: %{name: name}}}, resource) do
+    name in AshScyllaDB.DataLayer.Info.partition_key(resource)
+  end
+
+  # Eveything else is skipped
+  defp involves_partition_key?(_predicate, _resource), do: false
+
+  # In and Eq are the only two supported predicates on the partition key
+  defp supported_partition_key_operator?(%operator{}) do
+    operator in [Ash.Query.Operator.In, Ash.Query.Operator.Eq, Ash.Query.Operator.IsNil]
+  end
+
+  # Another traversal of the filter. Here we save in the private context (__ash_bindings__)
+  # some conditions that could require ALLOW FILTERING to be set on the query later.
+  # Currently we just check if we have a filter on a non-primary key attribute.
+  defp populate_allow_filtering_conditions(query, expression, resource) do
+    case expression do
+      %Ash.Filter{expression: expression} ->
+        populate_allow_filtering_conditions(query, expression, resource)
+
+      %Ash.Query.Not{expression: expression} ->
+        populate_allow_filtering_conditions(query, expression, resource)
+
+      %Ash.Query.BooleanExpression{left: left, right: right} ->
+        query
+        |> populate_allow_filtering_conditions(left, resource)
+        |> populate_allow_filtering_conditions(right, resource)
+
+      %{__operator__?: true} = op ->
+        if involves_non_primary_key_attribute?(op, resource) do
+          Map.update!(
+            query,
+            :__ash_bindings__,
+            &Map.put(&1, :non_primary_key_attribute_filter?, true)
+          )
+        else
+          query
+        end
+
+      %{__function__?: true, arguments: _arguments} ->
+        # Skip functions for now, but cover them since fragments pass from here
+        query
+    end
+  end
+
+  defp involves_non_primary_key_attribute?(%{left: %{attribute: %{name: name}}}, resource) do
+    name not in Ash.Resource.Info.primary_key(resource)
+  end
+
+  defp involves_non_primary_key_attribute?(%{right: %{attribute: %{name: name}}}, resource) do
+    name not in Ash.Resource.Info.primary_key(resource)
+  end
+
+  defp involves_non_primary_key_attribute?(_op, _resource), do: false
 
   # Taken from AshPostgres/AshSqlite, it just saves the sort to apply it later
   @impl true
@@ -235,7 +309,7 @@ defmodule AshScyllaDB.DataLayer do
   end
 
   # Here we take the data layer query, make all the last minute adjustments and run it agains
-  # the 
+  # the repo
   @impl true
   def run_query(query, resource) do
     with {:ok, query} <- apply_sort(query, resource) do
@@ -271,16 +345,19 @@ defmodule AshScyllaDB.DataLayer do
     {:ok, query}
   end
 
-  # Here we check the conditions we've set in filter/3 and see if we want to add
-  # ALLOW FILTERING. TBH I'm not sure if passing it regardless causes some difference
+  # Here we check the conditions we've set in populate_allow_filtering_conditions/3 and see if
+  # we want to add ALLOW FILTERING. I'm not sure if passing it regardless causes some difference
   # in the performance in the cases where it's not needed. If it doesn't, this would
   # probably make sense as an explicit setting on the resource itself (e.g. allow_filtering? true)
   defp maybe_allow_filtering(query, _resource) do
     allow_filtering? =
       cond do
         # If we're filtering on a non primary key
-        query.__ash_bindings__[:filter_on_non_primary_key?] ->
+        query.__ash_bindings__[:non_primary_key_attribute_filter?] ->
           true
+
+        # Ideally we will have additional conditions in the future, e.g. filters
+        # on primary keys that skip some of the primary key columns
 
         true ->
           false
@@ -386,9 +463,7 @@ defmodule AshScyllaDB.DataLayer do
   end
 
   defp repo_opts(repo, tenant, resource) do
-    opts = AshSql.repo_opts(repo, AshScyllaDB.SqlImplementation, nil, tenant, resource)
-    # TODO: should probably be exposed from the Data Layer config
-    Keyword.put(opts, :uuid_format, :binary)
+    AshSql.repo_opts(repo, AshScyllaDB.SqlImplementation, nil, tenant, resource)
   end
 
   # to_ecto and from_ecto are needed to convert back and forth records in the

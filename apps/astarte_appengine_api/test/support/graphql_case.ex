@@ -158,6 +158,6 @@ defmodule Astarte.AppEngine.APIWeb.GraphqlCase do
 
     Device
     |> Ash.Changeset.for_create(:create, params, tenant: tenant)
-    |> Ash.create!()
+    |> Ash.create!(load: :device_id)
   end
 end

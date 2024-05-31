@@ -4,7 +4,8 @@ defmodule Astarte.AppEngine.API.Devices.Device do
     data_layer: AshScyllaDB.DataLayer,
     extensions: [AshGraphql.Resource]
 
-  alias Astarte.AppEngine.API.Devices.Device.DeviceId
+  alias Astarte.AppEngine.API.Devices.Device.Changes
+  alias Astarte.AppEngine.API.Devices.Device.Calculations
 
   graphql do
     type :device
@@ -20,7 +21,19 @@ defmodule Astarte.AppEngine.API.Devices.Device do
   end
 
   actions do
-    defaults create: :*
+    defaults [:destroy]
+
+    create :create do
+      # This accepts all public attributes
+      accept :*
+
+      # We require device_id as argument, and convert it to a UUID below
+      argument :device_id, :string do
+        allow_nil? false
+      end
+
+      change Changes.SetDeviceId
+    end
 
     read :read do
       primary? true
@@ -33,10 +46,12 @@ defmodule Astarte.AppEngine.API.Devices.Device do
   end
 
   attributes do
-    attribute :device_id, DeviceId do
-      primary_key? true
-      allow_nil? false
-      public? true
+    # In the struct the :id key will contain the device ID as a UUID
+    # The UUID will be in the string representation since it's the path of least resistance
+    # The :device_id key will contain the Device ID in the Astarte representation, see
+    # the calculations sections
+    uuid_primary_key :id do
+      source :device_id
     end
 
     # TODO: custom map types
@@ -119,9 +134,15 @@ defmodule Astarte.AppEngine.API.Devices.Device do
     attribute :pending_empty_cache, :boolean
   end
 
+  calculations do
+    calculate :device_id, :string, Calculations.DeviceId do
+      public? true
+    end
+  end
+
   scylladb do
     repo Astarte.AppEngine.API.Repo
     table "devices"
-    partition_key [:device_id]
+    partition_key [:id]
   end
 end
