@@ -1,0 +1,35 @@
+defmodule Astarte.AppEngine.API.Devices.Device.Calculations.Interfaces do
+  use Ash.Resource.Calculation
+
+  def load(_opts) do
+    [
+      :introspection,
+      :introspection_minor,
+      :exchanged_bytes_by_interface,
+      :exchanged_msgs_by_interface
+    ]
+  end
+
+  def calculate(records, _opts, _context) do
+    interface_info_lists =
+      records
+      |> Enum.map(fn record ->
+        record.introspection_major
+        |> Enum.map(fn {interface_name, major} ->
+          minor = Map.fetch!(record.introspection_minor, interface_name)
+
+          exchanged_key = {interface_name, major}
+
+          %{
+            name: interface_name,
+            major: major,
+            minor: minor,
+            exchanged_msgs: Map.get(record.exchanged_msgs_by_interface, exchanged_key, 0),
+            exchanged_bytes: Map.get(record.exchanged_bytes_by_interface, exchanged_key, 0)
+          }
+        end)
+      end)
+
+    {:ok, interface_info_lists}
+  end
+end

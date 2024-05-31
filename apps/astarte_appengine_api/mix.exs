@@ -108,7 +108,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:ash_graphql, "~> 1.0-dev"},
       {:ash_sql, "~> 0.1"},
       {:picosat_elixir, "~> 0.2"},
-      {:exandra, "~> 0.10"},
+      {:exandra, github: "vinniefranco/exandra"},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},

@@ -59,6 +59,8 @@ config :astarte_appengine_api, :max_results_limit, 10000
 
 config :astarte_appengine_api, ash_domains: [Astarte.AppEngine.API.Devices]
 
+config :ash_graphql, :json_type, :json
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"

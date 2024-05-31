@@ -29,6 +29,61 @@ defmodule Astarte.AppEngine.APIWeb.Schema.Queries.DeviceTest do
       result = device_query(tenant: realm, id: id)
       assert %{data: %{"device" => nil}} = result
     end
+
+    test "returns aliases", %{realm: realm} do
+      fixture =
+        device_fixture(
+          tenant: realm,
+          aliases: %{"foo" => "bar", "beep" => "boop"}
+        )
+
+      id = AshGraphql.Resource.encode_relay_id(fixture)
+
+      document = """
+      query Device($id: ID!) {
+        device(id: $id) {
+          id
+          attributes
+        }
+      }
+      """
+
+      device =
+        device_query(document: document, tenant: realm, id: id)
+        |> extract_result!()
+
+      assert device["attributes"] == fixture.attributes
+    end
+
+    test "returns groups", %{realm: realm} do
+      fixture =
+        device_fixture(
+          tenant: realm,
+          groups: %{
+            "foo" => "b43ba208-1f69-11ef-9262-0242ac120002",
+            "bar" => "c25c4b44-1f69-11ef-9262-0242ac120002"
+          }
+        )
+
+      id = AshGraphql.Resource.encode_relay_id(fixture)
+
+      document = """
+      query Device($id: ID!) {
+        device(id: $id) {
+          id
+          groups
+        }
+      }
+      """
+
+      device =
+        device_query(tenant: realm, id: id)
+        |> extract_result!()
+
+      length(device["groups"]) == 2
+      assert "foo" in device["groups"]
+      assert "bar" in device["groups"]
+    end
   end
 
   defp non_existing_device_id(tenant) do

@@ -12,7 +12,8 @@ defmodule Astarte.AppEngine.APIWeb.Schema.Queries.DevicesTest do
           tenant: realm,
           connected: true,
           last_connection: truncated_utc_now() |> DateTime.add(-1, :hour),
-          last_disconnection: truncated_utc_now() |> DateTime.add(-3, :hour)
+          last_disconnection: truncated_utc_now() |> DateTime.add(-3, :hour),
+          attributes: %{"foo" => "bar"}
         )
 
       assert %{"edges" => [%{"node" => device}]} =
@@ -23,6 +24,7 @@ defmodule Astarte.AppEngine.APIWeb.Schema.Queries.DevicesTest do
       assert device["connected"] == true
       assert device["lastConnection"] == fixture.last_connection |> DateTime.to_iso8601()
       assert device["lastDisconnection"] == fixture.last_disconnection |> DateTime.to_iso8601()
+      assert device["attributes"] == %{"foo" => "bar"}
     end
 
     test "can paginate forward", %{realm: realm} do
@@ -146,6 +148,7 @@ defmodule Astarte.AppEngine.APIWeb.Schema.Queries.DevicesTest do
               connected
               lastConnection
               lastDisconnection
+              attributes
             }
             cursor
           }

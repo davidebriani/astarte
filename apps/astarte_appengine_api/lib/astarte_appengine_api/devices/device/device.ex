@@ -6,9 +6,12 @@ defmodule Astarte.AppEngine.API.Devices.Device do
 
   alias Astarte.AppEngine.API.Devices.Device.Changes
   alias Astarte.AppEngine.API.Devices.Device.Calculations
+  alias Astarte.AppEngine.API.Devices.Device.InterfaceInfo
 
   graphql do
     type :device
+
+    field_names group_names: :groups
 
     queries do
       get :device, :read
@@ -24,8 +27,28 @@ defmodule Astarte.AppEngine.API.Devices.Device do
     defaults [:destroy]
 
     create :create do
-      # This accepts all public attributes
-      accept :*
+      accept [
+        :first_registration,
+        :inhibit_credentials_request,
+        :first_credentials_request,
+        :last_connection,
+        :last_disconnection,
+        :connected,
+        :total_received_msgs,
+        :total_received_bytes,
+        :attributes,
+        :aliases,
+        :groups,
+        :introspection,
+        :introspection_minor,
+        :old_introspection,
+        :exchanged_bytes_by_interface,
+        :exchanged_msgs_by_interface,
+        :credentials_secret,
+        :cert_serial,
+        :cert_aki,
+        :pending_empty_cache
+      ]
 
       # We require device_id as argument, and convert it to a UUID below
       argument :device_id, :string do
@@ -54,19 +77,6 @@ defmodule Astarte.AppEngine.API.Devices.Device do
       source :device_id
     end
 
-    # TODO: custom map types
-    # attribute :aliases, :map do
-    #   public? true
-    # end
-
-    # attribute :introspection, :map do
-    #   public? true
-    # end
-
-    # attribute :old_introspection, :map do
-    #   public? true
-    # end
-
     attribute :first_registration, :utc_datetime_usec do
       public? true
     end
@@ -94,20 +104,13 @@ defmodule Astarte.AppEngine.API.Devices.Device do
 
     attribute :total_received_msgs, :integer do
       public? true
+      default 0
     end
 
     attribute :total_received_bytes, :integer do
       public? true
+      default 0
     end
-
-    # TODO: custom map types
-    # attribute :exchanged_bytes_by_interface, :map do
-    #   public? true
-    # end
-
-    # attribute :exchanged_msgs_by_interface, :map do
-    #   public? true
-    # end
 
     # TODO: inet (https://github.com/vinniefranco/exandra/issues/59)
     # attribute :last_credentials_request_ip, :string do
@@ -118,15 +121,50 @@ defmodule Astarte.AppEngine.API.Devices.Device do
     #   public? true
     # end
 
-    # TODO: handle custom Ecto types
-    # attribute :attributes, :map do
-    #   public? true
-    # end
+    attribute :attributes, AshScyllaDB.Types.Map do
+      public? true
+      constraints key: :string, value: :string
+      default %{}
+    end
 
-    # TODO: custom map types
-    # attribute :groups, :map do
-    #   public? true
-    # end
+    attribute :aliases, AshScyllaDB.Types.Map do
+      public? true
+      constraints key: :string, value: :string
+      default %{}
+    end
+
+    # These below are all private attributes. They are mostly decoupled from public
+    # facing stuff via calculations
+
+    attribute :groups, AshScyllaDB.Types.Map do
+      constraints key: :string, value: Ecto.UUID
+      default %{}
+    end
+
+    attribute :introspection, AshScyllaDB.Types.Map do
+      constraints key: :string, value: :integer
+      default %{}
+    end
+
+    attribute :introspection_minor, AshScyllaDB.Types.Map do
+      constraints key: :string, value: :integer
+      default %{}
+    end
+
+    attribute :old_introspection, AshScyllaDB.Types.Map do
+      constraints key: Exandra.Tuple, types: [:string, :integer], value: :integer
+      default %{}
+    end
+
+    attribute :exchanged_bytes_by_interface, AshScyllaDB.Types.Map do
+      constraints key: Exandra.Tuple, types: [:string, :integer], value: :integer
+      default %{}
+    end
+
+    attribute :exchanged_msgs_by_interface, AshScyllaDB.Types.Map do
+      constraints key: Exandra.Tuple, types: [:string, :integer], value: :integer
+      default %{}
+    end
 
     attribute :credentials_secret, :string
     attribute :cert_serial, :string
@@ -136,6 +174,18 @@ defmodule Astarte.AppEngine.API.Devices.Device do
 
   calculations do
     calculate :device_id, :string, Calculations.DeviceId do
+      public? true
+    end
+
+    calculate :interfaces, {:array, InterfaceInfo}, Calculations.Interfaces do
+      public? true
+    end
+
+    calculate :old_interfaces, {:array, InterfaceInfo}, Calculations.OldInterfaces do
+      public? true
+    end
+
+    calculate :group_names, {:array, :string}, Calculations.GroupNames do
       public? true
     end
   end
