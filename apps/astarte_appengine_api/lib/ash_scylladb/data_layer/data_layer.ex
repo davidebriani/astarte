@@ -81,6 +81,7 @@ defmodule AshScyllaDB.DataLayer do
   # These are things we _can_ do
   def can?(_, :read), do: true
   def can?(_, :create), do: true
+  def can?(_, :destroy), do: true
   def can?(_, :multitenancy), do: true
   def can?(_, :select), do: true
   def can?(_, :limit), do: true
@@ -310,6 +311,32 @@ defmodule AshScyllaDB.DataLayer do
       |> case do
         {:ok, record} ->
           {:ok, record}
+
+        {:error, error} ->
+          handle_errors({:error, error})
+      end
+    rescue
+      e ->
+        handle_raised_error(e, __STACKTRACE__, ecto_changeset, resource)
+    end
+  end
+
+  # Given a type of resource and a changeset, destroy a record of that type
+  # Taken from AshSqlite
+  @impl true
+  def destroy(resource, %{data: record} = changeset) do
+    ecto_changeset = ecto_changeset(record, changeset, :delete)
+    tenant = Map.get(changeset, :to_tenant, changeset.tenant)
+    repo = AshSql.dynamic_repo(resource, AshScyllaDB.SqlImplementation, changeset)
+    opts = repo_opts(repo, tenant, resource)
+
+    try do
+      ecto_changeset
+      |> repo.delete(opts)
+      |> from_ecto()
+      |> case do
+        {:ok, _record} ->
+          :ok
 
         {:error, error} ->
           handle_errors({:error, error})
