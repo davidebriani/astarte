@@ -14,7 +14,7 @@ defmodule Astarte.AppEngine.API.Devices.Device.Calculations.Interfaces do
     interface_info_lists =
       records
       |> Enum.map(fn record ->
-        record.introspection_major
+        record.introspection
         |> Enum.map(fn {interface_name, major} ->
           minor = Map.fetch!(record.introspection_minor, interface_name)
 
