@@ -8,5 +8,7 @@ defmodule Astarte.AppEngine.API.Devices do
 
   resources do
     resource Astarte.AppEngine.API.Devices.Device
+
+    resource Astarte.AppEngine.API.Devices.DeletionInProgress
   end
 end
