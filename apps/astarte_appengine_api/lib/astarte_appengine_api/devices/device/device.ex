@@ -33,6 +33,8 @@ defmodule Astarte.AppEngine.API.Devices.Device do
         :first_credentials_request,
         :last_connection,
         :last_disconnection,
+        :last_credentials_request_ip,
+        :last_seen_ip,
         :connected,
         :total_received_msgs,
         :total_received_bytes,
@@ -112,14 +114,13 @@ defmodule Astarte.AppEngine.API.Devices.Device do
       default 0
     end
 
-    # TODO: inet (https://github.com/vinniefranco/exandra/issues/59)
-    # attribute :last_credentials_request_ip, :string do
-    #   public? true
-    # end
+    attribute :last_credentials_request_ip, AshScyllaDB.Types.Inet do
+      public? true
+    end
 
-    # attribute :last_seen_ip, :string do
-    #   public? true
-    # end
+    attribute :last_seen_ip, AshScyllaDB.Types.Inet do
+      public? true
+    end
 
     attribute :attributes, AshScyllaDB.Types.Map do
       public? true
