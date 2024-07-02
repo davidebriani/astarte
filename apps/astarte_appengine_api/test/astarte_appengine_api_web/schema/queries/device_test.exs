@@ -290,6 +290,34 @@ defmodule Astarte.AppEngine.APIWeb.Schema.Queries.DeviceTest do
                }
              ] = Enum.sort_by(device["oldInterfaces"], & &1["name"])
     end
+
+    test "returns communication stats", %{realm: realm} do
+      fixture =
+        device_fixture(
+          tenant: realm,
+          total_received_msgs: 1,
+          total_received_bytes: 1024
+        )
+
+      id = AshGraphql.Resource.encode_relay_id(fixture)
+
+      document = """
+      query Device($id: ID!) {
+        device(id: $id) {
+          id
+          totalReceivedMsgs
+          totalReceivedBytes
+        }
+      }
+      """
+
+      device =
+        device_query(document: document, tenant: realm, id: id)
+        |> extract_result!()
+
+      assert device["totalReceivedMsgs"] == 1
+      assert device["totalReceivedBytes"] == 1024
+    end
   end
 
   defp non_existing_device_id(tenant) do
