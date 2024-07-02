@@ -318,6 +318,37 @@ defmodule Astarte.AppEngine.APIWeb.Schema.Queries.DeviceTest do
       assert device["totalReceivedMsgs"] == 1
       assert device["totalReceivedBytes"] == 1024
     end
+
+    test "returns details about device deletion", %{realm: realm} do
+      fixture = device_fixture(tenant: realm)
+
+      id = AshGraphql.Resource.encode_relay_id(fixture)
+
+      document = """
+      query Device($id: ID!) {
+        device(id: $id) {
+          id
+          deletionInProgress
+        }
+      }
+      """
+
+      device =
+        device_query(document: document, tenant: realm, id: id)
+        |> extract_result!()
+
+      assert device["deletionInProgress"] == false
+
+      {:ok, device} = Devices.start_device_deletion(fixture, load: :deletion_in_progress)
+
+      assert device.deletion_in_progress == true
+
+      device =
+        device_query(document: document, tenant: realm, id: id)
+        |> extract_result!()
+
+      assert device["deletionInProgress"] == true
+    end
   end
 
   defp non_existing_device_id(tenant) do
