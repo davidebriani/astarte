@@ -1,27 +1,18 @@
 defmodule Astarte.AppEngine.APIWeb.Schema.Queries.DeviceTest do
   use Astarte.AppEngine.APIWeb.GraphqlCase, async: true
 
+  alias Astarte.AppEngine.API.Devices
+
   describe "device query" do
     test "returns device if present", %{realm: realm} do
-      fixture =
-        device_fixture(
-          tenant: realm,
-          connected: true,
-          last_connection: truncated_utc_now() |> DateTime.add(-1, :hour),
-          last_disconnection: truncated_utc_now() |> DateTime.add(-3, :hour)
-        )
+      fixture = device_fixture(tenant: realm)
 
       id = AshGraphql.Resource.encode_relay_id(fixture)
 
-      device =
-        device_query(tenant: realm, id: id)
-        |> extract_result!()
+      device = device_query(tenant: realm, id: id) |> extract_result!()
 
       assert device["id"] == id
       assert device["deviceId"] == fixture.device_id
-      assert device["connected"] == true
-      assert device["lastConnection"] == fixture.last_connection |> DateTime.to_iso8601()
-      assert device["lastDisconnection"] == fixture.last_disconnection |> DateTime.to_iso8601()
     end
 
     test "returns nil if non existing", %{realm: realm} do
@@ -30,11 +21,54 @@ defmodule Astarte.AppEngine.APIWeb.Schema.Queries.DeviceTest do
       assert %{data: %{"device" => nil}} = result
     end
 
-    test "returns aliases", %{realm: realm} do
+    test "returns connection details", %{realm: realm} do
       fixture =
         device_fixture(
           tenant: realm,
-          aliases: %{"foo" => "bar", "beep" => "boop"}
+          connected: true,
+          last_connection: truncated_utc_now() |> DateTime.add(-1, :hour),
+          last_disconnection: truncated_utc_now() |> DateTime.add(-3, :hour),
+          first_credentials_request: truncated_utc_now() |> DateTime.add(-5, :hour),
+          last_credentials_request_ip: "192.168.1.2",
+          last_seen_ip: "192.168.1.2"
+        )
+
+      id = AshGraphql.Resource.encode_relay_id(fixture)
+
+      document = """
+      query Device($id: ID!) {
+        device(id: $id) {
+          id
+          connected
+          lastConnection
+          lastDisconnection
+          firstCredentialsRequest
+          lastCredentialsRequestIp
+          lastSeenIp
+        }
+      }
+      """
+
+      device =
+        device_query(document: document, tenant: realm, id: id)
+        |> extract_result!()
+
+      assert device["connected"] == true
+      assert device["lastConnection"] == fixture.last_connection |> DateTime.to_iso8601()
+      assert device["lastDisconnection"] == fixture.last_disconnection |> DateTime.to_iso8601()
+
+      assert device["firstCredentialsRequest"] ==
+               fixture.first_credentials_request |> DateTime.to_iso8601()
+
+      assert device["lastCredentialsRequestIp"] == "192.168.1.2"
+      assert device["lastSeenIp"] == "192.168.1.2"
+    end
+
+    test "returns attributes", %{realm: realm} do
+      fixture =
+        device_fixture(
+          tenant: realm,
+          attributes: %{"foo" => "bar", "beep" => "boop"}
         )
 
       id = AshGraphql.Resource.encode_relay_id(fixture)
@@ -52,7 +86,32 @@ defmodule Astarte.AppEngine.APIWeb.Schema.Queries.DeviceTest do
         device_query(document: document, tenant: realm, id: id)
         |> extract_result!()
 
-      assert device["attributes"] == fixture.attributes
+      assert device["attributes"] == %{"foo" => "bar", "beep" => "boop"}
+    end
+
+    test "returns aliases", %{realm: realm} do
+      fixture =
+        device_fixture(
+          tenant: realm,
+          aliases: %{"foo" => "bar", "beep" => "boop"}
+        )
+
+      id = AshGraphql.Resource.encode_relay_id(fixture)
+
+      document = """
+      query Device($id: ID!) {
+        device(id: $id) {
+          id
+          aliases
+        }
+      }
+      """
+
+      device =
+        device_query(document: document, tenant: realm, id: id)
+        |> extract_result!()
+
+      assert device["aliases"] == %{"foo" => "bar", "beep" => "boop"}
     end
 
     test "returns groups", %{realm: realm} do
@@ -77,10 +136,10 @@ defmodule Astarte.AppEngine.APIWeb.Schema.Queries.DeviceTest do
       """
 
       device =
-        device_query(tenant: realm, id: id)
+        device_query(document: document, tenant: realm, id: id)
         |> extract_result!()
 
-      length(device["groups"]) == 2
+      assert length(device["groups"]) == 2
       assert "foo" in device["groups"]
       assert "bar" in device["groups"]
     end
@@ -105,10 +164,6 @@ defmodule Astarte.AppEngine.APIWeb.Schema.Queries.DeviceTest do
         device(id: $id) {
           id
           deviceId
-          connected
-          lastConnection
-          lastDisconnection
-          attributes
         }
       }
       """
