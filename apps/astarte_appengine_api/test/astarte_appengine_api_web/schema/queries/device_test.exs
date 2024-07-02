@@ -64,6 +64,31 @@ defmodule Astarte.AppEngine.APIWeb.Schema.Queries.DeviceTest do
       assert device["lastSeenIp"] == "192.168.1.2"
     end
 
+    test "returns registration details", %{realm: realm} do
+      fixture =
+        device_fixture(
+          tenant: realm,
+          first_registration: truncated_utc_now()
+        )
+
+      id = AshGraphql.Resource.encode_relay_id(fixture)
+
+      document = """
+      query Device($id: ID!) {
+        device(id: $id) {
+          id
+          firstRegistration
+        }
+      }
+      """
+
+      device =
+        device_query(document: document, tenant: realm, id: id)
+        |> extract_result!()
+
+      assert device["firstRegistration"] == fixture.first_registration |> DateTime.to_iso8601()
+    end
+
     test "returns attributes", %{realm: realm} do
       fixture =
         device_fixture(
