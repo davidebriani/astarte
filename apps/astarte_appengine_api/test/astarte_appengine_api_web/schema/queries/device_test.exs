@@ -168,6 +168,128 @@ defmodule Astarte.AppEngine.APIWeb.Schema.Queries.DeviceTest do
       assert "foo" in device["groups"]
       assert "bar" in device["groups"]
     end
+
+    test "returns interfaces", %{realm: realm} do
+      fixture =
+        device_fixture(
+          tenant: realm,
+          introspection: %{
+            "com.example.IndividualDatastream" => 1,
+            "com.example.IndividualProperties" => 2
+          },
+          introspection_minor: %{
+            "com.example.IndividualDatastream" => 1,
+            "com.example.IndividualProperties" => 2
+          },
+          exchanged_bytes_by_interface: %{
+            {"com.example.IndividualDatastream", 1} => 1024,
+            {"com.example.IndividualProperties", 2} => 2048
+          },
+          exchanged_msgs_by_interface: %{
+            {"com.example.IndividualDatastream", 1} => 1,
+            {"com.example.IndividualProperties", 2} => 2
+          }
+        )
+
+      id = AshGraphql.Resource.encode_relay_id(fixture)
+
+      document = """
+      query Device($id: ID!) {
+        device(id: $id) {
+          id
+          interfaces {
+            name
+            major
+            minor
+            exchangedMsgs
+            exchangedBytes
+          }
+        }
+      }
+      """
+
+      device =
+        device_query(document: document, tenant: realm, id: id)
+        |> extract_result!()
+
+      assert length(device["interfaces"]) == 2
+
+      assert [
+               %{
+                 "name" => "com.example.IndividualDatastream",
+                 "major" => 1,
+                 "minor" => 1,
+                 "exchangedMsgs" => 1,
+                 "exchangedBytes" => 1024
+               },
+               %{
+                 "name" => "com.example.IndividualProperties",
+                 "major" => 2,
+                 "minor" => 2,
+                 "exchangedMsgs" => 2,
+                 "exchangedBytes" => 2048
+               }
+             ] = Enum.sort_by(device["interfaces"], & &1["name"])
+    end
+
+    test "returns old interfaces", %{realm: realm} do
+      fixture =
+        device_fixture(
+          tenant: realm,
+          old_introspection: %{
+            {"com.example.IndividualDatastream", 1} => 1,
+            {"com.example.IndividualProperties", 2} => 2
+          },
+          exchanged_bytes_by_interface: %{
+            {"com.example.IndividualDatastream", 1} => 1024,
+            {"com.example.IndividualProperties", 2} => 2048
+          },
+          exchanged_msgs_by_interface: %{
+            {"com.example.IndividualDatastream", 1} => 1,
+            {"com.example.IndividualProperties", 2} => 2
+          }
+        )
+
+      id = AshGraphql.Resource.encode_relay_id(fixture)
+
+      document = """
+      query Device($id: ID!) {
+        device(id: $id) {
+          id
+          oldInterfaces {
+            name
+            major
+            minor
+            exchangedMsgs
+            exchangedBytes
+          }
+        }
+      }
+      """
+
+      device =
+        device_query(document: document, tenant: realm, id: id)
+        |> extract_result!()
+
+      assert length(device["oldInterfaces"]) == 2
+
+      assert [
+               %{
+                 "name" => "com.example.IndividualDatastream",
+                 "major" => 1,
+                 "minor" => 1,
+                 "exchangedMsgs" => 1,
+                 "exchangedBytes" => 1024
+               },
+               %{
+                 "name" => "com.example.IndividualProperties",
+                 "major" => 2,
+                 "minor" => 2,
+                 "exchangedMsgs" => 2,
+                 "exchangedBytes" => 2048
+               }
+             ] = Enum.sort_by(device["oldInterfaces"], & &1["name"])
+    end
   end
 
   defp non_existing_device_id(tenant) do
