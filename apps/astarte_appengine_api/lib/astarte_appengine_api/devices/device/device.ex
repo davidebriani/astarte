@@ -178,6 +178,10 @@ defmodule Astarte.AppEngine.API.Devices.Device do
       public? true
     end
 
+    calculate :deletion_in_progress, :boolean, Calculations.DeletionInProgress do
+      public? true
+    end
+
     calculate :interfaces, {:array, InterfaceInfo}, Calculations.Interfaces do
       public? true
     end
