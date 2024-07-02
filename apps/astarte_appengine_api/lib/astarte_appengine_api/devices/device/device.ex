@@ -7,6 +7,7 @@ defmodule Astarte.AppEngine.API.Devices.Device do
   alias Astarte.AppEngine.API.Devices.Device.Changes
   alias Astarte.AppEngine.API.Devices.Device.Calculations
   alias Astarte.AppEngine.API.Devices.Device.InterfaceInfo
+  alias Astarte.AppEngine.API.Devices.Device.ManualActions
 
   graphql do
     type :device
@@ -67,6 +68,10 @@ defmodule Astarte.AppEngine.API.Devices.Device do
         keyset? true
         required? false
       end
+    end
+
+    update :start_deletion do
+      manual ManualActions.StartDeviceDeletion
     end
   end
 
