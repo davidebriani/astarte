@@ -1,7 +1,6 @@
 defmodule AshScyllaDB.DataLayer do
   import Ecto.Query, only: [from: 2]
 
-  alias Astarte.AppEngine.API.Devices.Device
   require Ash.Expr
 
   # This, up to and including `use Spark.Dsl.Extension`, is what makes it possible
@@ -297,7 +296,7 @@ defmodule AshScyllaDB.DataLayer do
 
   # Taken from AshPostgres/AshSqlite, it just saves the sort to apply it later
   @impl true
-  def sort(query, sort, Device) do
+  def sort(query, sort, _resource) do
     {:ok, Map.update!(query, :__ash_bindings__, &Map.put(&1, :sort, sort))}
   end
 
