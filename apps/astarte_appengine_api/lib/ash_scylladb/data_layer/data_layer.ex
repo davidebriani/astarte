@@ -80,6 +80,7 @@ defmodule AshScyllaDB.DataLayer do
   # These are things we _can_ do
   def can?(_, :read), do: true
   def can?(_, :create), do: true
+  def can?(_, :update), do: true
   def can?(_, :destroy), do: true
   def can?(_, :multitenancy), do: true
   def can?(_, :select), do: true
@@ -383,6 +384,34 @@ defmodule AshScyllaDB.DataLayer do
 
     try do
       repo.insert(ecto_changeset, opts)
+      |> from_ecto()
+      |> case do
+        {:ok, record} ->
+          {:ok, record}
+
+        {:error, error} ->
+          handle_errors({:error, error})
+      end
+    rescue
+      e ->
+        handle_raised_error(e, __STACKTRACE__, ecto_changeset, resource)
+    end
+  end
+
+  # Given a type of resource and a changeset, update a record of that type
+  @impl true
+  def update(resource, changeset) do
+    ecto_changeset =
+      changeset.data
+      |> Map.update!(:__meta__, &Map.put(&1, :source, table(resource, changeset)))
+      |> ecto_changeset(changeset, :update)
+
+    tenant = Map.get(changeset, :to_tenant, changeset.tenant)
+    repo = AshSql.dynamic_repo(resource, AshScyllaDB.SqlImplementation, changeset)
+    opts = repo_opts(repo, tenant, resource)
+
+    try do
+      repo.update(ecto_changeset, opts)
       |> from_ecto()
       |> case do
         {:ok, record} ->
