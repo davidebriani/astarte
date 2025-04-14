@@ -1,0 +1,14 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: astarte-default-ingress-certificate
+  namespace: astarte
+spec:
+  dnsNames:
+    - {{ .Values.ingress.astarteApiHost }}
+    - {{ .Values.ingress.astarteVernemqHost }}
+    - {{ .Values.ingress.astarteDashboardHost }}
+  secretName: astarte-tls-cert-secret
+  issuerRef:
+    name: cluster-issuer
+    kind: ClusterIssuer

@@ -1,0 +1,20 @@
+apiVersion: ingress.astarte-platform.org/v1alpha1
+kind: AstarteDefaultIngress
+metadata:
+  name: adi
+  namespace: astarte
+  labels:
+    {{- include "astarte.labels" . | nindent 4 }}
+spec:
+  ### Astarte Default Ingress CRD
+  astarte: astarte
+  tlsSecret: astarte-tls-cert-secret
+  api:
+    exposeHousekeeping: true
+  dashboard:
+    deploy: true
+    ssl: true
+    host: {{ .Values.ingress.astarteDashboardHost }}
+  broker:
+    deploy: true
+    serviceType: LoadBalancer

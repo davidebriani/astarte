@@ -1,0 +1,4 @@
+ingress:
+  astarteApiHost: api.astarte.192.168.49.2.nip.io
+  astarteVernemqHost: vernemq.astarte.192.168.49.2.nip.io
+  astarteDashboardHost: dashboard.astarte.192.168.49.2.nip.io

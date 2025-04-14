@@ -1,0 +1,23 @@
+apiVersion: skaffold/v4beta11
+kind: Config
+metadata:
+  name: astarte
+deploy:
+  helm:
+    releases:
+      - name: astarte-infra
+        chartPath: helm-infra
+        setValueTemplates:
+          ingress.astarteApiHost: "{{.ASTARTE_API_HOST}}"
+          ingress.astarteVernemqHost: "{{.ASTARTE_VERNEMQ_HOST}}"
+          ingress.astarteDashboardHost: "{{.ASTARTE_DASHBOARD_HOST}}"
+      - name: astarte
+        chartPath: helm
+        setValueTemplates:
+          ingress.astarteApiHost: "{{.ASTARTE_API_HOST}}"
+          ingress.astarteVernemqHost: "{{.ASTARTE_VERNEMQ_HOST}}"
+          ingress.astarteDashboardHost: "{{.ASTARTE_DASHBOARD_HOST}}"
+    hooks:
+      after:
+        - host:
+            command: ["sh", "-c", 'echo -e "App API available at:\n- https://${ASTARTE_API_HOST}\n- https://${ASTARTE_VERNEMQ_HOST}\n- https://${ASTARTE_DASHBOARD_HOST}"']
