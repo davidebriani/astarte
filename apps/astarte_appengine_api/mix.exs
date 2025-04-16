@@ -115,7 +115,8 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
       # Test section
       {:excoveralls, "~> 0.15", only: :test},
-      {:mox, "~> 0.5", only: :test}
+      {:mox, "~> 0.5", only: :test},
+      {:mix_test_watch, "~> 1.0", only: [:dev], runtime: false}
     ]
   end
 end
