@@ -200,7 +200,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     }
 
     # TODO maybe we don't want triggers on unexpected internal messages?
-    execute_device_error_triggers(
+    Core.TriggerExecution.execute_device_error_triggers(
       new_state,
       "unexpected_internal_message",
       error_metadata,
@@ -227,272 +227,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     Logger.info("Device disconnected.", tag: "device_disconnected")
 
     %{new_state | last_seen_message: timestamp}
-  end
-
-  defp execute_incoming_data_triggers(
-         state,
-         device,
-         interface,
-         interface_id,
-         path,
-         endpoint_id,
-         payload,
-         value,
-         timestamp
-       ) do
-    realm = state.realm
-
-    # any interface triggers
-    Core.Interface.get_on_data_triggers(state, :on_incoming_data, :any_interface, :any_endpoint)
-    |> Enum.each(fn trigger ->
-      target_with_policy_list = get_target_with_policy_list(state, trigger)
-
-      TriggersHandler.incoming_data(
-        target_with_policy_list,
-        realm,
-        device,
-        interface,
-        path,
-        payload,
-        timestamp
-      )
-    end)
-
-    # any endpoint triggers
-    Core.Interface.get_on_data_triggers(state, :on_incoming_data, interface_id, :any_endpoint)
-    |> Enum.each(fn trigger ->
-      target_with_policy_list = get_target_with_policy_list(state, trigger)
-
-      TriggersHandler.incoming_data(
-        target_with_policy_list,
-        realm,
-        device,
-        interface,
-        path,
-        payload,
-        timestamp
-      )
-    end)
-
-    # incoming data triggers
-    Core.Interface.get_on_data_triggers(
-      state,
-      :on_incoming_data,
-      interface_id,
-      endpoint_id,
-      path,
-      value
-    )
-    |> Enum.each(fn trigger ->
-      target_with_policy_list = get_target_with_policy_list(state, trigger)
-
-      TriggersHandler.incoming_data(
-        target_with_policy_list,
-        realm,
-        device,
-        interface,
-        path,
-        payload,
-        timestamp
-      )
-    end)
-
-    :ok
-  end
-
-  defp get_target_with_policy_list(state, trigger) do
-    trigger.trigger_targets
-    |> Enum.map(fn target ->
-      {target, Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)}
-    end)
-  end
-
-  defp get_value_change_triggers(state, interface_id, endpoint_id, path, value) do
-    value_change_triggers =
-      Core.Interface.get_on_data_triggers(
-        state,
-        :on_value_change,
-        interface_id,
-        endpoint_id,
-        path,
-        value
-      )
-
-    value_change_applied_triggers =
-      Core.Interface.get_on_data_triggers(
-        state,
-        :on_value_change_applied,
-        interface_id,
-        endpoint_id,
-        path,
-        value
-      )
-
-    path_created_triggers =
-      Core.Interface.get_on_data_triggers(
-        state,
-        :on_path_created,
-        interface_id,
-        endpoint_id,
-        path,
-        value
-      )
-
-    path_removed_triggers =
-      Core.Interface.get_on_data_triggers(
-        state,
-        :on_path_removed,
-        interface_id,
-        endpoint_id,
-        path
-      )
-
-    if value_change_triggers != [] or value_change_applied_triggers != [] or
-         path_created_triggers != [] do
-      {:ok,
-       {value_change_triggers, value_change_applied_triggers, path_created_triggers,
-        path_removed_triggers}}
-    else
-      {:no_value_change_triggers, nil}
-    end
-  end
-
-  defp execute_pre_change_triggers(
-         {value_change_triggers, _, _, _},
-         realm,
-         device_id_string,
-         interface_name,
-         path,
-         previous_value,
-         value,
-         timestamp,
-         trigger_id_to_policy_name_map
-       ) do
-    old_bson_value = Cyanide.encode!(%{v: previous_value})
-    payload = Cyanide.encode!(%{v: value})
-
-    if previous_value != value do
-      Enum.each(value_change_triggers, fn trigger ->
-        trigger_target_with_policy_list =
-          trigger.trigger_targets
-          |> Enum.map(fn target ->
-            {target, Map.get(trigger_id_to_policy_name_map, target.parent_trigger_id)}
-          end)
-
-        TriggersHandler.value_change(
-          trigger_target_with_policy_list,
-          realm,
-          device_id_string,
-          interface_name,
-          path,
-          old_bson_value,
-          payload,
-          timestamp
-        )
-      end)
-    end
-
-    :ok
-  end
-
-  defp execute_post_change_triggers(
-         {_, value_change_applied_triggers, path_created_triggers, path_removed_triggers},
-         realm,
-         device,
-         interface,
-         path,
-         previous_value,
-         value,
-         timestamp,
-         trigger_id_to_policy_name_map
-       ) do
-    old_bson_value = Cyanide.encode!(%{v: previous_value})
-    payload = Cyanide.encode!(%{v: value})
-
-    if previous_value == nil and value != nil do
-      Enum.each(path_created_triggers, fn trigger ->
-        target_with_policy_list =
-          trigger.trigger_targets
-          |> Enum.map(fn target ->
-            {target, Map.get(trigger_id_to_policy_name_map, target.parent_trigger_id)}
-          end)
-
-        TriggersHandler.path_created(
-          target_with_policy_list,
-          realm,
-          device,
-          interface,
-          path,
-          payload,
-          timestamp
-        )
-      end)
-    end
-
-    if previous_value != nil and value == nil do
-      Enum.each(path_removed_triggers, fn trigger ->
-        target_with_policy_list =
-          trigger.trigger_targets
-          |> Enum.map(fn target ->
-            {target, Map.get(trigger_id_to_policy_name_map, target.parent_trigger_id)}
-          end)
-
-        TriggersHandler.path_removed(
-          target_with_policy_list,
-          realm,
-          device,
-          interface,
-          path,
-          timestamp
-        )
-      end)
-    end
-
-    if previous_value != value do
-      Enum.each(value_change_applied_triggers, fn trigger ->
-        target_with_policy_list =
-          trigger.trigger_targets
-          |> Enum.map(fn target ->
-            {target, Map.get(trigger_id_to_policy_name_map, target.parent_trigger_id)}
-          end)
-
-        TriggersHandler.value_change_applied(
-          target_with_policy_list,
-          realm,
-          device,
-          interface,
-          path,
-          old_bson_value,
-          payload,
-          timestamp
-        )
-      end)
-    end
-
-    :ok
-  end
-
-  defp execute_device_error_triggers(state, error_name, error_metadata \\ %{}, timestamp) do
-    timestamp_ms = div(timestamp, 10_000)
-
-    trigger_target_with_policy_list =
-      Map.get(state.device_triggers, :on_device_error, [])
-      |> Enum.map(fn target ->
-        {target, Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)}
-      end)
-
-    device_id_string = Device.encode_device_id(state.device_id)
-
-    TriggersHandler.device_error(
-      trigger_target_with_policy_list,
-      state.realm,
-      device_id_string,
-      error_name,
-      error_metadata,
-      timestamp_ms
-    )
-
-    :ok
   end
 
   def handle_data(%State{discard_messages: true} = state, _, _, _, message_id, _) do
@@ -534,7 +268,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           div(timestamp, 10000)
         end
 
-      execute_incoming_data_triggers(
+      Core.TriggerExecution.execute_incoming_data_triggers(
         new_state,
         device_id_string,
         interface_descriptor.name,
@@ -547,7 +281,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       )
 
       {has_change_triggers, change_triggers} =
-        get_value_change_triggers(new_state, interface_id, endpoint_id, path, value)
+        Core.TriggerExecution.value_change_triggers_info(
+          new_state,
+          interface_id,
+          endpoint_id,
+          path,
+          value
+        )
 
       previous_value =
         with {:has_change_triggers, :ok} <- {:has_change_triggers, has_change_triggers},
@@ -570,7 +310,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
       if has_change_triggers == :ok do
         :ok =
-          execute_pre_change_triggers(
+          Core.TriggerExecution.execute_pre_change_triggers(
             change_triggers,
             new_state.realm,
             device_id_string,
@@ -651,7 +391,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             "base64_payload" => base64_payload
           }
 
-          execute_device_error_triggers(
+          Core.TriggerExecution.execute_device_error_triggers(
             new_state,
             "unset_on_datastream",
             error_metadata,
@@ -700,7 +440,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             "base64_payload" => base64_payload
           }
 
-          execute_device_error_triggers(
+          Core.TriggerExecution.execute_device_error_triggers(
             new_state,
             "unset_not_allowed",
             error_metadata,
@@ -765,7 +505,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "base64_payload" => base64_payload
         }
 
-        execute_device_error_triggers(
+        Core.TriggerExecution.execute_device_error_triggers(
           new_state,
           "write_on_server_owned_interface",
           error_metadata,
@@ -796,7 +536,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "base64_payload" => base64_payload
         }
 
-        execute_device_error_triggers(
+        Core.TriggerExecution.execute_device_error_triggers(
           new_state,
           "invalid_interface",
           error_metadata,
@@ -825,7 +565,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "base64_payload" => base64_payload
         }
 
-        execute_device_error_triggers(new_state, "invalid_path", error_metadata, timestamp)
+        Core.TriggerExecution.execute_device_error_triggers(
+          new_state,
+          "invalid_path",
+          error_metadata,
+          timestamp
+        )
 
         update_stats(new_state, interface, nil, path, payload)
 
@@ -851,7 +596,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "base64_payload" => base64_payload
         }
 
-        execute_device_error_triggers(new_state, "mapping_not_found", error_metadata, timestamp)
+        Core.TriggerExecution.execute_device_error_triggers(
+          new_state,
+          "mapping_not_found",
+          error_metadata,
+          timestamp
+        )
 
         update_stats(new_state, interface, nil, path, payload)
 
@@ -876,7 +626,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "base64_payload" => base64_payload
         }
 
-        execute_device_error_triggers(
+        Core.TriggerExecution.execute_device_error_triggers(
           new_state,
           "interface_loading_failed",
           error_metadata,
@@ -907,7 +657,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "base64_payload" => base64_payload
         }
 
-        execute_device_error_triggers(
+        Core.TriggerExecution.execute_device_error_triggers(
           new_state,
           "ambiguous_path",
           error_metadata,
@@ -939,7 +689,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "base64_payload" => base64_payload
         }
 
-        execute_device_error_triggers(
+        Core.TriggerExecution.execute_device_error_triggers(
           new_state,
           "undecodable_bson_payload",
           error_metadata,
@@ -971,7 +721,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "base64_payload" => base64_payload
         }
 
-        execute_device_error_triggers(
+        Core.TriggerExecution.execute_device_error_triggers(
           new_state,
           "unexpected_value_type",
           error_metadata,
@@ -1003,7 +753,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "base64_payload" => base64_payload
         }
 
-        execute_device_error_triggers(new_state, "value_size_exceeded", error_metadata, timestamp)
+        Core.TriggerExecution.execute_device_error_triggers(
+          new_state,
+          "value_size_exceeded",
+          error_metadata,
+          timestamp
+        )
 
         update_stats(new_state, interface, nil, path, payload)
 
@@ -1030,7 +785,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "base64_payload" => base64_payload
         }
 
-        execute_device_error_triggers(
+        Core.TriggerExecution.execute_device_error_triggers(
           new_state,
           "unexpected_object_key",
           error_metadata,
@@ -1246,7 +1001,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "base64_payload" => base64_payload
         }
 
-        execute_device_error_triggers(
+        Core.TriggerExecution.execute_device_error_triggers(
           new_state,
           "invalid_introspection",
           error_metadata,
@@ -1346,7 +1101,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           %{realm: new_state.realm}
         )
 
-        execute_device_error_triggers(new_state, "device_session_not_found", timestamp)
+        Core.TriggerExecution.execute_device_error_triggers(
+          new_state,
+          "device_session_not_found",
+          timestamp
+        )
 
         new_state
 
@@ -1364,7 +1123,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           %{realm: new_state.realm}
         )
 
-        execute_device_error_triggers(
+        Core.TriggerExecution.execute_device_error_triggers(
           new_state,
           "resend_interface_properties_failed",
           timestamp
@@ -1388,7 +1147,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
         error_metadata = %{"reason" => inspect(reason)}
 
-        execute_device_error_triggers(new_state, "empty_cache_error", error_metadata, timestamp)
+        Core.TriggerExecution.execute_device_error_triggers(
+          new_state,
+          "empty_cache_error",
+          error_metadata,
+          timestamp
+        )
 
         new_state
     end
@@ -1416,7 +1180,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       "base64_payload" => base64_payload
     }
 
-    execute_device_error_triggers(
+    Core.TriggerExecution.execute_device_error_triggers(
       new_state,
       "unexpected_control_message",
       error_metadata,
