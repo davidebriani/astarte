@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+Application.ensure_all_started(:mimic)
 Mimic.copy(Astarte.Core.Mapping.ValueType)
 Mimic.copy(Astarte.DataAccess.Config)
 Mimic.copy(Astarte.DataUpdaterPlant.DataUpdater.Server)
@@ -32,8 +33,12 @@ Mimic.copy(Astarte.DataUpdaterPlant.DataUpdater.Queries)
 Mimic.copy(Astarte.DataUpdaterPlant.RPC.Server.Core)
 Mimic.copy(Astarte.DataUpdaterPlant.RPC.VMQPlugin)
 Mimic.copy(Astarte.DataUpdaterPlant.TriggersHandler)
+Mimic.copy(Astarte.DataUpdaterPlant.AMQPDataConsumer)
+Mimic.copy(Astarte.DataUpdaterPlant.DataUpdater)
 Mimic.copy(System)
 Mimic.copy(Xandra)
 Mimic.copy(Astarte.DataAccess.Health.Health)
+
+Mimic.copy(ExRabbitPool.RabbitMQ)
 
 ExUnit.start(capture_log: true)
