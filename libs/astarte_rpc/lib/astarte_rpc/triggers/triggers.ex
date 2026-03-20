@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025-2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,7 +44,8 @@ defmodule Astarte.RPC.Triggers do
           simple_trigger: tagged_simple_trigger,
           target: target,
           policy: policy,
-          data: data
+          data: data,
+          otel_ctx: OpenTelemetry.Ctx.get_current()
         }
 
       broadcast(tagged_simple_trigger, message)
@@ -58,7 +59,8 @@ defmodule Astarte.RPC.Triggers do
           realm_name: realm_name,
           trigger_id: trigger_id,
           simple_trigger: tagged_simple_trigger,
-          data: data
+          data: data,
+          otel_ctx: OpenTelemetry.Ctx.get_current()
         }
 
       broadcast(tagged_simple_trigger, message)

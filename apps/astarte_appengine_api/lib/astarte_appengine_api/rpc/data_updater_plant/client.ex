@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025-2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,13 +25,13 @@ defmodule Astarte.AppEngine.API.RPC.DataUpdaterPlant.Client do
   @impl Astarte.AppEngine.API.RPC.DataUpdaterPlant.Behaviour
   def install_volatile_trigger(request_data) do
     server_via_tuple()
-    |> GenServer.call({:install_volatile_trigger, request_data})
+    |> GenServer.call({:install_volatile_trigger, request_data, OpenTelemetry.Ctx.get_current()})
   end
 
   @impl Astarte.AppEngine.API.RPC.DataUpdaterPlant.Behaviour
   def delete_volatile_trigger(request_data) do
     server_via_tuple()
-    |> GenServer.call({:delete_volatile_trigger, request_data})
+    |> GenServer.call({:delete_volatile_trigger, request_data, OpenTelemetry.Ctx.get_current()})
   end
 
   defp server_via_tuple, do: {:via, Horde.Registry, {Registry.DataUpdaterRPC, :server}}

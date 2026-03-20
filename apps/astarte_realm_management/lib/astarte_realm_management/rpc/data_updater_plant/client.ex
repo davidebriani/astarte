@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025-2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,9 @@ defmodule Astarte.RealmManagement.RPC.DataUpdaterPlant.Client do
     encoded_device_id = Device.encode_device_id(decoded_id)
 
     server_via_tuple()
-    |> GenServer.call({:start_device_deletion, {realm_name, encoded_device_id}})
+    |> GenServer.call(
+      {:start_device_deletion, {realm_name, encoded_device_id}, OpenTelemetry.Ctx.get_current()}
+    )
   end
 
   defp server_via_tuple, do: {:via, Horde.Registry, {Registry.DataUpdaterRPC, :server}}

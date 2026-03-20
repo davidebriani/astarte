@@ -44,11 +44,31 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server do
   end
 
   @impl GenServer
+  def handle_call({:start_device_deletion, {realm_name, encoded_device_id}, ctx}, from, state) do
+    OpenTelemetry.Ctx.attach(ctx)
+    require OpenTelemetry.Tracer
+
+    OpenTelemetry.Tracer.with_span "rpc.server.start_device_deletion", kind: :server do
+      handle_call({:start_device_deletion, {realm_name, encoded_device_id}}, from, state)
+    end
+  end
+
+  @impl GenServer
   def handle_call({:start_device_deletion, {realm_name, encoded_device_id}}, _from, state) do
     now = DateTime.utc_now() |> DateTime.to_unix(:microsecond) |> Kernel.*(10)
     :ok = Core.start_device_deletion(realm_name, encoded_device_id, now)
 
     {:reply, :ok, state}
+  end
+
+  @impl GenServer
+  def handle_call({:install_volatile_trigger, volatile_trigger, ctx}, from, state) do
+    OpenTelemetry.Ctx.attach(ctx)
+    require OpenTelemetry.Tracer
+
+    OpenTelemetry.Tracer.with_span "rpc.server.install_volatile_trigger", kind: :server do
+      handle_call({:install_volatile_trigger, volatile_trigger}, from, state)
+    end
   end
 
   @impl GenServer
@@ -60,6 +80,16 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server do
     end
 
     {:reply, reply, state}
+  end
+
+  @impl GenServer
+  def handle_call({:delete_volatile_trigger, delete_request, ctx}, from, state) do
+    OpenTelemetry.Ctx.attach(ctx)
+    require OpenTelemetry.Tracer
+
+    OpenTelemetry.Tracer.with_span "rpc.server.delete_volatile_trigger", kind: :server do
+      handle_call({:delete_volatile_trigger, delete_request}, from, state)
+    end
   end
 
   @impl GenServer

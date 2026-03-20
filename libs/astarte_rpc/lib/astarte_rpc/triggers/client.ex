@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025-2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -42,6 +42,15 @@ defmodule Astarte.RPC.Triggers.Client do
 
   @impl GenServer
   def handle_info(%TriggerInstallation{} = message, state) do
+    OpenTelemetry.Ctx.attach(message.otel_ctx)
+    require OpenTelemetry.Tracer
+
+    OpenTelemetry.Tracer.with_span "rpc.pubsub.trigger_installation", kind: :consumer do
+      handle_install(message, state)
+    end
+  end
+
+  defp handle_install(%TriggerInstallation{} = message, state) do
     %TriggerInstallation{
       realm_name: realm_name,
       simple_trigger: simple_trigger,
@@ -57,6 +66,15 @@ defmodule Astarte.RPC.Triggers.Client do
 
   @impl GenServer
   def handle_info(%TriggerDeletion{} = message, state) do
+    OpenTelemetry.Ctx.attach(message.otel_ctx)
+    require OpenTelemetry.Tracer
+
+    OpenTelemetry.Tracer.with_span "rpc.pubsub.trigger_deletion", kind: :consumer do
+      handle_delete(message, state)
+    end
+  end
+
+  defp handle_delete(%TriggerDeletion{} = message, state) do
     %TriggerDeletion{
       realm_name: realm_name,
       trigger_id: trigger_id,

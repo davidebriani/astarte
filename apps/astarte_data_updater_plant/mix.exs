@@ -69,6 +69,9 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
 
   defp deps do
     [
+      {:opentelemetry_api, "~> 1.5"},
+      {:opentelemetry, "~> 1.7"},
+      {:opentelemetry_exporter, "~> 1.10"},
       {:jason, "~> 1.2"},
       {:amqp, "~> 3.3"},
       {:castore, "~> 1.0.0"},

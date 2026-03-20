@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025-2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,5 +31,6 @@ defmodule Astarte.RPC.Triggers.TriggerDeletion do
     field :trigger_id, UUID.t()
     field :simple_trigger, TaggedSimpleTrigger.t()
     field :data, Core.fetch_triggers_data()
+    field :otel_ctx, any()
   end
 end
