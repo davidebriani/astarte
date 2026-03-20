@@ -1,0 +1,30 @@
+services:
+  jaeger:
+    image: jaegertracing/jaeger:latest
+    ports:
+      - "16686:16686" # Jaeger UI
+      - "4318:4318"   # OTLP HTTP receiver
+  astarte-housekeeping:
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=astarte-housekeeping
+  astarte-realm-management:
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=astarte-realm-management
+  astarte-pairing:
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=astarte-pairing
+  astarte-appengine-api:
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=astarte-appengine-api
+  astarte-data-updater-plant:
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=astarte-data-updater-plant
+  astarte-trigger-engine:
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=astarte-trigger-engine
