@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 Ispirata Srl
+# Copyright 2019-2026 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,6 +27,10 @@ defmodule Astarte.AppEngine.APIWeb.Plug.LogDeviceId do
   def call(conn, _opts) do
     with %{"device_id" => device_id} <- conn.path_params do
       Logger.metadata(device_id: device_id)
+
+      if Code.ensure_loaded?(OpenTelemetry.Tracer) do
+        OpenTelemetry.Tracer.set_attribute("astarte.device_id", device_id)
+      end
     end
 
     conn

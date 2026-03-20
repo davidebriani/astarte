@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 Ispirata Srl
+# Copyright 2019-2026 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,6 +27,10 @@ defmodule Astarte.AppEngine.APIWeb.Plug.LogPath do
   def call(conn, _opts) do
     with %{"path" => path} <- conn.path_params do
       Logger.metadata(path: path)
+
+      if Code.ensure_loaded?(OpenTelemetry.Tracer) do
+        OpenTelemetry.Tracer.set_attribute("astarte.interface_path", path)
+      end
     end
 
     conn

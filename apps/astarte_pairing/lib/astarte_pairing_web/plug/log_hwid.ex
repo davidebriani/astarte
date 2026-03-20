@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 - 2025 SECO Mind Srl
+# Copyright 2019 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,6 +25,10 @@ defmodule Astarte.PairingWeb.Plug.LogHwId do
   def call(conn, _opts) do
     with %{"hw_id" => hw_id} <- conn.path_params do
       Logger.metadata(hw_id: hw_id)
+
+      if Code.ensure_loaded?(OpenTelemetry.Tracer) do
+        OpenTelemetry.Tracer.set_attribute("astarte.hw_id", hw_id)
+      end
     end
 
     conn
