@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2025 Seco Mind Srl
+# Copyright 2017 - 2026 Seco Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,6 +33,8 @@ defmodule Astarte.AppEngine.API.Application do
   # See https://hexdocs.pm/elixir/Application.html
   # for more information on OTP Applications
   def start(_type, _args) do
+    :ok = OpentelemetryPhoenix.setup()
+
     alias Astarte.AppEngine.API.Config
     alias Astarte.DataAccess.Config, as: DataAccessConfig
 
