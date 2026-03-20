@@ -76,8 +76,18 @@ defmodule Astarte.Events.AMQPTriggers.Producer do
 
   @impl true
   def handle_call({:publish, exchange, routing_key, payload, opts}, _from, {conn, chan, realm}) do
-    reply = RabbitMQ.publish(chan, exchange, routing_key, payload, opts)
+    headers = Keyword.get(opts, :headers, [])
+    headers = inject_open_telemetry_ctx(headers)
+    opts_with_tracing = Keyword.put(opts, :headers, headers)
+    reply = RabbitMQ.publish(chan, exchange, routing_key, payload, opts_with_tracing)
+
     {:reply, reply, {conn, chan, realm}, 60_000}
+  end
+
+  defp inject_open_telemetry_ctx(headers) do
+    :otel_propagator_text_map.inject(%{})
+    |> Enum.map(fn {key, value} -> {"otel-" <> key, :longstr, value} end)
+    |> Enum.concat(headers)
   end
 
   @impl true

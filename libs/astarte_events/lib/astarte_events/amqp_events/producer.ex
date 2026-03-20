@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2025 SECO Mind Srl
+# Copyright 2017-2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -58,9 +58,18 @@ defmodule Astarte.Events.AMQPEvents.Producer do
 
   @impl true
   def handle_call({:publish, exchange, routing_key, payload, opts}, _from, chan) do
-    reply = RabbitMQ.publish(chan, exchange, routing_key, payload, opts)
+    headers = Keyword.get(opts, :headers, [])
+    headers = inject_open_telemetry_ctx(headers)
+    opts_with_tracing = Keyword.put(opts, :headers, headers)
+    reply = RabbitMQ.publish(chan, exchange, routing_key, payload, opts_with_tracing)
 
     {:reply, reply, chan}
+  end
+
+  defp inject_open_telemetry_ctx(headers) do
+    :otel_propagator_text_map.inject(%{})
+    |> Enum.map(fn {key, value} -> {"otel-" <> key, :longstr, value} end)
+    |> Enum.concat(headers)
   end
 
   def handle_call({:declare_exchange, exchange}, _from, chan) do

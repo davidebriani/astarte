@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025-2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -65,7 +65,10 @@ defmodule Astarte.Events.Mixfile do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:astarte_generators, path: "../astarte_generators", only: [:dev, :test]},
       {:typedstruct, "~> 0.5"},
-      {:httpoison, "~> 2.2"}
+      {:httpoison, "~> 2.2"},
+      {:opentelemetry_api, "~> 1.5"},
+      {:opentelemetry, "~> 1.7"},
+      {:opentelemetry_exporter, "~> 1.10"}
     ]
   end
 end

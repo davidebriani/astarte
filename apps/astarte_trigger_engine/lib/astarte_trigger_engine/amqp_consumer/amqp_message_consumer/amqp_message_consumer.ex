@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2022 - 2025 SECO Mind Srl
+# Copyright 2022 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -114,16 +114,30 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer do
         {:basic_deliver, payload, meta},
         %{realm_name: realm_name, policy: policy, channel: chan} = state
       ) do
-    _ =
-      Logger.debug(
-        "consumer for #{realm_name}, #{policy.name} received message, payload: #{inspect(payload)}, meta: #{inspect(meta)}",
-        tag: "message_received"
-      )
+    headers = Map.get(meta, :headers, [])
+    ctx = extract_open_telemetry_ctx(headers)
+    OpenTelemetry.Ctx.attach(ctx)
+    require OpenTelemetry.Tracer
 
-    get_policy_process(realm_name, policy)
-    |> Policy.handle_event(chan, payload, meta)
+    OpenTelemetry.Tracer.with_span "amqp.consume", kind: :consumer do
+      _ =
+        Logger.debug(
+          "consumer for #{realm_name}, #{policy.name} received message, payload: #{inspect(payload)}, meta: #{inspect(meta)}",
+          tag: "message_received"
+        )
+
+      get_policy_process(realm_name, policy)
+      |> Policy.handle_event(chan, payload, meta)
+    end
 
     {:noreply, state}
+  end
+
+  defp extract_open_telemetry_ctx(headers) do
+    headers
+    |> Enum.filter(fn {key, _type, _value} -> String.starts_with?(key, "otel-") end)
+    |> Map.new(fn {"otel-" <> key, _type, value} -> {key, value} end)
+    |> :otel_propagator_text_map.extract()
   end
 
   # Sent by the broker when the consumer is unexpectedly cancelled (such as after a queue deletion)
